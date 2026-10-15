@@ -10,7 +10,9 @@
       const trigger = event.target.closest('[data-modal-url]');
       if (!trigger) return;
       event.preventDefault();
-      previousFocus = trigger;
+      // Redirected legacy links use a hidden trigger; return focus to the
+      // visible directory heading when that preview is dismissed.
+      previousFocus = trigger.hidden ? document.querySelector('.staff-content-directory h1') : trigger;
       title.textContent = trigger.dataset.modalTitle || 'Details';
       body.textContent = 'Loading details…';
       if (!modal.open) modal.showModal();
@@ -29,6 +31,12 @@
     modal.querySelector('[data-modal-close]').addEventListener('click', () => modal.close());
     modal.addEventListener('click', (event) => { if (event.target === modal) modal.close(); });
     modal.addEventListener('close', () => { if (previousFocus) previousFocus.focus(); });
+    // Existing bookmarked staff detail URLs redirect here with ?preview=<id>.
+    // Reuse the same permission-checked modal endpoint; do not open a legacy page.
+    const autoPreview = document.getElementById('announcementAutoPreview');
+    if (autoPreview?.dataset.modalUrl) {
+      autoPreview.click();
+    }
   }
 
   // A previously stored image may no longer exist on external media storage.

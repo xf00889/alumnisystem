@@ -159,6 +159,8 @@ class AnnouncementListView(LoginRequiredMixin, ListView):
         # Add filter state to context
         context['search_query'] = self.request.GET.get('q', '')
         context['current_priority'] = self.request.GET.get('priority', '').upper()
+        preview_id = self.request.GET.get('preview', '')
+        context['auto_preview_id'] = int(preview_id) if preview_id.isdecimal() and len(preview_id) < 15 else None
         context['selected_categories'] = [int(cat) for cat in self.request.GET.getlist('category')]
         
         return context
@@ -188,6 +190,23 @@ class AnnouncementListView(LoginRequiredMixin, ListView):
 class AnnouncementDetailView(LoginRequiredMixin, DetailView):
     model = Announcement
     template_name = 'announcements/announcement_detail.html'
+
+    def get(self, request, *args, **kwargs):
+        # Keep old links functional; staff details live in the admin directory modal.
+        user = request.user
+        is_manager = user.is_staff or user.is_superuser or getattr(
+            getattr(user, 'profile', None), 'is_alumni_coordinator', False
+        )
+        if is_manager:
+            # Confirm that the bookmarked record exists; the preview endpoint
+            # independently checks the administrator's permissions.
+            get_object_or_404(Announcement, pk=self.kwargs['pk'])
+            from django.urls import reverse
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(
+                f"{reverse('announcements:announcement-list')}?preview={self.kwargs['pk']}"
+            )
+        return super().get(request, *args, **kwargs)
     
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)

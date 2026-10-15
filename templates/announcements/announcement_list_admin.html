@@ -4,7 +4,7 @@
 {% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin/content-management.css' %}">{% endblock %}
 {% block content %}
 <div class="container-fluid staff-content-directory" data-staff-directory="announcements">
-  <header class="admin-page-header admin-page-header--action-row"><div class="admin-page-header__content"><p class="admin-page-header__eyebrow">ADMINISTRATION / COMMUNICATIONS</p><h1 class="admin-page-header__title">Announcement Administration</h1><p class="admin-page-header__subtitle">Create and manage official alumni announcements.</p></div><div class="admin-page-header__actions"><a class="btn btn-light" href="{% url 'announcements:announcement-create' %}"><i class="fas fa-plus" aria-hidden="true"></i> New Announcement</a></div></header>
+  <header class="admin-page-header admin-page-header--action-row"><div class="admin-page-header__content"><p class="admin-page-header__eyebrow">ADMINISTRATION / COMMUNICATIONS</p><h1 class="admin-page-header__title" tabindex="-1">Announcement Administration</h1><p class="admin-page-header__subtitle">Create and manage official alumni announcements.</p></div><div class="admin-page-header__actions"><a class="btn btn-light" href="{% url 'announcements:announcement-create' %}"><i class="fas fa-plus" aria-hidden="true"></i> New Announcement</a></div></header>
   <form class="staff-content-filters" method="get" role="search" aria-label="Filter announcements">
     <label>Search announcements<input class="form-control" type="search" name="q" value="{{ search_query }}" placeholder="Title or content"></label>
     <label>Priority<select class="form-select" name="priority"><option value="">All priorities</option><option value="URGENT" {% if current_priority == 'URGENT' %}selected{% endif %}>Urgent</option><option value="HIGH" {% if current_priority == 'HIGH' %}selected{% endif %}>High</option><option value="MEDIUM" {% if current_priority == 'MEDIUM' %}selected{% endif %}>Medium</option><option value="LOW" {% if current_priority == 'LOW' %}selected{% endif %}>Low</option></select></label>
@@ -21,6 +21,9 @@
     {% if page_obj.has_other_pages %}<nav class="staff-content-pagination" aria-label="Announcement pages">{% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ search_query|urlencode }}&priority={{ current_priority|urlencode }}">Previous</a>{% endif %}<span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ search_query|urlencode }}&priority={{ current_priority|urlencode }}">Next</a>{% endif %}</nav>{% endif %}
   </section>
 </div>
+{% if auto_preview_id %}
+<button type="button" hidden id="announcementAutoPreview" data-modal-url="{% url 'announcements:admin-announcement-preview' auto_preview_id %}" data-modal-title="Announcement details" aria-hidden="true" tabindex="-1"></button>
+{% endif %}
 <dialog class="staff-content-modal" id="staffContentDialog" aria-labelledby="staffContentDialogTitle"><header><h2 id="staffContentDialogTitle">Announcement details</h2><button type="button" data-modal-close aria-label="Close details">&times;</button></header><div data-modal-body></div></dialog>
 {% endblock %}
 {% block extra_js %}{{ block.super }}<script src="{% static 'js/admin/content-management.js' %}" defer></script>{% endblock %}

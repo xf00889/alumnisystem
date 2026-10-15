@@ -27,23 +27,8 @@
         <h1 class="directory-title admin-page-header__title">Announcements</h1>
         <p class="directory-subtitle admin-page-header__subtitle">Stay updated with the latest news and announcements</p>
                 </div>
-    
-    <!-- View Toggle Section -->
-    <div class="view-toggle-section">
-        <div class="view-toggle-container">
-            <label class="view-toggle-label">View Mode:</label>
-            <div class="view-toggle-buttons">
-                <button type="button" id="cardViewBtn" class="view-toggle-btn active" data-view="card">
-                    <i class="fas fa-th-large"></i>
-                    Card View
-                </button>
-                <button type="button" id="tableViewBtn" class="view-toggle-btn" data-view="table">
-                    <i class="fas fa-table"></i>
-                    Tabular View
-                </button>
-                </div>
-                            </div>
-                        </div>
+    <!-- Card-only alumni announcements; search and priority filters remain available. -->
+
 
     <!-- Search Section -->
     <div class="search-section">
@@ -168,75 +153,6 @@
                                         </div>
                                     </div>
                                 {% endfor %}
-                                    </div>
-
-    <!-- Table View -->
-    <div class="announcements-table" id="announcementsTable">
-        <table>
-            <thead>
-                <tr>
-                    <th width="5%">
-                        <input type="checkbox" id="selectAllTable" class="form-check-input">
-                    </th>
-                    <th width="25%">Title</th>
-                    <th width="35%">Content</th>
-                    <th width="15%">Priority</th>
-                    <th width="10%">Category</th>
-                    <th width="10%">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for announcement in announcements %}
-                <tr data-id="{{ announcement.pk }}">
-                    <td>
-                        <input type="checkbox" class="row-checkbox form-check-input table-checkbox" 
-                               value="{{ announcement.pk }}">
-                    </td>
-                    <td>
-                        <div class="table-title">{{ announcement.title }}</div>
-                        <div class="table-meta">
-                            <span><i class="fas fa-calendar"></i> {{ announcement.date_posted|date:"M d, Y" }}</span>
-                            <span><i class="fas fa-eye"></i> {{ announcement.views_count }} views</span>
-                                        </div>
-                    </td>
-                    <td>
-                        <div class="table-content">{{ announcement.content|truncatewords:20 }}</div>
-                        <div class="table-meta">
-                            <span><i class="fas fa-users"></i> {{ announcement.get_target_audience_display }}</span>
-                                    </div>
-                    </td>
-                    <td>
-                        <span class="priority-badge priority-{{ announcement.priority_level }}">
-                            <i class="fas {% if announcement.priority_level == 'URGENT' %}fa-exclamation-triangle{% elif announcement.priority_level == 'HIGH' %}fa-arrow-up{% elif announcement.priority_level == 'MEDIUM' %}fa-minus{% else %}fa-arrow-down{% endif %}"></i>
-                            {{ announcement.get_priority_level_display }}
-                        </span>
-                    </td>
-                    <td>
-                        {% if announcement.category %}
-                            <span class="category-badge">{{ announcement.category.name }}</span>
-                        {% else %}
-                            <span class="text-muted">No category</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div class="table-actions">
-                            <button class="table-action-btn view-details-btn" data-announcement-id="{{ announcement.pk }}">
-                                            <i class="fas fa-eye"></i>
-                            </button>
-                                            {% if user.is_staff or user.is_superuser or user.profile.is_alumni_coordinator %}
-                            <a href="{% url 'announcements:announcement-update' announcement.pk %}" class="table-action-btn">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                            <button class="table-action-btn delete-btn" data-id="{{ announcement.pk }}">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                            {% endif %}
-                                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
                                     </div>
 
     {% else %}
@@ -376,8 +292,6 @@ class AnnouncementsTable {
         this.selectedRows = new Set();
         this.searchInput = document.getElementById('searchInput');
         this.bulkActions = document.getElementById('bulkActions');
-        this.currentView = localStorage.getItem('announcementsView') || 'card';
-        this.initViewToggle();
         this.selectedCount = document.getElementById('selectedCount');
         this.filterButtons = document.querySelectorAll('.filter-button');
         this.cards = document.querySelectorAll('.announcement-card');
@@ -389,54 +303,6 @@ class AnnouncementsTable {
         this.setupSearch();
         this.setupFilters();
         this.setupCheckboxes();
-        this.setInitialView();
-    }
-    
-    initViewToggle() {
-        const cardViewBtn = document.getElementById('cardViewBtn');
-        const tableViewBtn = document.getElementById('tableViewBtn');
-        const announcementsGrid = document.getElementById('announcementsGrid');
-        const announcementsTable = document.getElementById('announcementsTable');
-        
-        if (cardViewBtn) {
-            cardViewBtn.addEventListener('click', () => {
-                this.switchView('card');
-            });
-        }
-        
-        if (tableViewBtn) {
-            tableViewBtn.addEventListener('click', () => {
-                this.switchView('table');
-            });
-        }
-    }
-    
-    switchView(view) {
-        const cardViewBtn = document.getElementById('cardViewBtn');
-        const tableViewBtn = document.getElementById('tableViewBtn');
-        const announcementsGrid = document.getElementById('announcementsGrid');
-        const announcementsTable = document.getElementById('announcementsTable');
-        
-        // Update button states
-        if (view === 'card') {
-            cardViewBtn.classList.add('active');
-            tableViewBtn.classList.remove('active');
-            announcementsGrid.style.display = 'grid';
-            announcementsTable.classList.remove('show');
-        } else {
-            tableViewBtn.classList.add('active');
-            cardViewBtn.classList.remove('active');
-            announcementsGrid.style.display = 'none';
-            announcementsTable.classList.add('show');
-        }
-        
-        // Save preference
-        localStorage.setItem('announcementsView', view);
-        this.currentView = view;
-    }
-    
-    setInitialView() {
-        this.switchView(this.currentView);
     }
     
     setupSearch() {
