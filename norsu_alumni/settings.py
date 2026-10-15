@@ -370,6 +370,10 @@ CSP_SCRIPT_SRC = (
     "https://www.recaptcha.net",
     "https://cdn.jsdelivr.net",  # For Bootstrap and other CDN scripts
     "https://cdnjs.cloudflare.com",
+    # Cloudflare Web Analytics automatically injects a versioned beacon script
+    # from this dedicated host. Report uploads use same-origin /cdn-cgi/rum
+    # and are already covered by CSP_CONNECT_SRC's 'self'.
+    "https://static.cloudflareinsights.com",
     "https://code.jquery.com",  # For jQuery
     "https://unpkg.com",  # For HTMX and other packages
 )
