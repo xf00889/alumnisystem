@@ -1,10 +1,12 @@
 """Regression coverage for removing an experimental scraper source."""
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory, SimpleTestCase, TestCase
 
 from jobs.admin import ScrapedJobAdmin
 from jobs.admin_scraper_utils import publish_scraped_job
-from jobs.botasaurus_scrapers.orchestrator import SCRAPERS, DEFAULT_SOURCES, scrape_site
+from jobs.botasaurus_scrapers.orchestrator import SCRAPERS, scrape_all_sites, scrape_site
 from jobs.models import JobPosting, ScrapedJob
 from django.contrib import admin
 
@@ -12,9 +14,29 @@ from django.contrib import admin
 class RetiredSourceConfigurationTests(SimpleTestCase):
     def test_retired_source_is_not_selectable(self):
         self.assertNotIn('PESO_NEGROS_ORIENTAL', SCRAPERS)
-        self.assertNotIn('PESO_NEGROS_ORIENTAL', DEFAULT_SOURCES)
         self.assertNotIn('PESO_NEGROS_ORIENTAL', dict(ScrapedJob.SOURCE_CHOICES))
         self.assertIn('PHILJOBNET', SCRAPERS)
+
+    def test_default_batch_uses_live_registry_without_retired_source(self):
+        """Default batch selection must exclude PESO without external requests."""
+        def fake_scrape(source_key, keyword, location):
+            return {
+                'success': True,
+                'source': source_key,
+                'jobs': [],
+                'total_found': 0,
+            }
+
+        with patch(
+            'jobs.botasaurus_scrapers.orchestrator.scrape_site',
+            side_effect=fake_scrape,
+        ) as mocked_scrape:
+            results = scrape_all_sites('nurse', 'Negros Oriental', max_workers=1)
+
+        sources = [result['source'] for result in results]
+        self.assertCountEqual(sources, SCRAPERS.keys())
+        self.assertEqual(mocked_scrape.call_count, len(SCRAPERS))
+        self.assertNotIn('PESO_NEGROS_ORIENTAL', sources)
 
     def test_manual_attempt_to_scrape_retired_source_is_rejected(self):
         result = scrape_site('PESO_NEGROS_ORIENTAL', 'nurse', 'Negros Oriental')
