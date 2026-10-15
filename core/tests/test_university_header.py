@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 from unittest import TestCase
 
 
@@ -52,8 +53,36 @@ class UniversityHeaderTest(TestCase):
         landing_template = (
             BASE_DIR / "templates" / "base_landingpage.html"
         ).read_text(encoding="utf-8")
+        bundled_home_css = (
+            BASE_DIR / "static" / "css" / "public-home-bundle.css"
+        ).read_text(encoding="utf-8")
+        other_public_css = (
+            BASE_DIR / "static" / "css" / "modules" / "layout-public.css"
+        ).read_text(encoding="utf-8")
 
+        # The university header defines the same height for both routes,
+        # including the smaller mobile breakpoint.
         self.assertIn("--university-header-height: 76px;", header_css)
         self.assertIn("height: var(--university-header-height);", header_css)
-        self.assertIn("top: var(--university-header-height, 76px);", landing_template)
-        self.assertIn("@media (max-width: 767px) {", landing_template)
+        self.assertIn("@media (max-width: 767px) {", header_css)
+        self.assertIn("--university-header-height: 64px;", header_css)
+
+        # Homepage styles were moved from the template to a generated CSS
+        # bundle. Assert the actual navbar rule in both delivered stylesheets
+        # rather than requiring obsolete inline CSS in the HTML template.
+        navbar_rule = re.compile(r"\.landing-navbar\s*\{([^{}]*)\}", re.S)
+        offset = "top: var(--university-header-height, 76px);"
+        for label, stylesheet in (
+            ("homepage CSS bundle", bundled_home_css),
+            ("other public pages CSS", other_public_css),
+        ):
+            with self.subTest(stylesheet=label):
+                blocks = navbar_rule.findall(stylesheet)
+                self.assertTrue(
+                    any(offset in block for block in blocks),
+                    f"{label} must position the navbar directly below the university header",
+                )
+
+        self.assertIn("--university-header-height: 64px;", bundled_home_css)
+        self.assertIn("versioned_static 'css/public-home-bundle.css'", landing_template)
+        self.assertIn("static 'css/modules/layout-public.css'", landing_template)
