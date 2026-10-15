@@ -8,7 +8,7 @@ from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount
 from allauth.mfa import totp
 
-from accounts.email_login_mfa import KEY, MAX_ATTEMPTS, email_enabled, verified_email
+from accounts.email_login_mfa import KEY, MAX_ATTEMPTS, email_enabled, verified_email, _google_identity_confirms_address
 from core.testing_clients import CompletedPortalSetupMixin
 from accounts.models import EmailLoginMFASettings
 
@@ -102,6 +102,29 @@ class EmailLoginMFATests(CompletedPortalSetupMixin, TestCase):
         self.assertContains(view, 'Try another way')
         self.assertEqual(send.call_count, 0)
 
+    def test_google_identity_confirmation_requires_matching_verified_claim(self):
+        email = self.user.email
+        matches = (
+            {'email': ' EMAILSTAGE@example.org ', 'email_verified': True},
+            {'email': email, 'email_verified': 'true'},
+            {'email': email, 'verified_email': True},
+        )
+        for payload in matches:
+            with self.subTest(accepted=payload):
+                self.assertTrue(_google_identity_confirms_address(payload, email))
+        rejected = (
+            None,
+            {},
+            {'email': email},
+            {'email': email, 'email_verified': False},
+            {'email': email, 'email_verified': 'yes'},
+            {'email': 'unrelated@example.org', 'email_verified': True},
+            {'email': email, 'email_verified': 1},
+        )
+        for payload in rejected:
+            with self.subTest(rejected=payload):
+                self.assertFalse(_google_identity_confirms_address(payload, email))
+
     def test_verified_google_sso_address_can_enable_email_verification(self):
         # Some OAuth accounts have a linked Google identity but no EmailAddress row.
         EmailAddress.objects.filter(user=self.user).delete()
@@ -110,6 +133,7 @@ class EmailLoginMFATests(CompletedPortalSetupMixin, TestCase):
             extra_data={'email': 'EmailStage@example.org', 'email_verified': True},
         )
         self.assertTrue(verified_email(self.user))
+        self.client.force_login(self.user)
         response = self.client.get(reverse('accounts:security_dashboard'), secure=True)
         self.assertContains(response, 'Enable email verification')
         self.assertNotContains(response, 'Verify your registered email before enabling')
@@ -126,6 +150,8 @@ class EmailLoginMFATests(CompletedPortalSetupMixin, TestCase):
         self.assertFalse(verified_email(self.user))
         google.extra_data = {'email': self.user.email, 'email_verified': True}
         google.save(update_fields=['extra_data'])
+        google.refresh_from_db()
+        self.assertTrue(_google_identity_confirms_address(google.extra_data, self.user.email))
         self.assertTrue(verified_email(self.user))
         self.user.email = 'changed@example.org'
         self.user.save(update_fields=['email'])
@@ -133,6 +159,7 @@ class EmailLoginMFATests(CompletedPortalSetupMixin, TestCase):
 
     @override_settings(EMAIL_LOGIN_MFA_ROLLOUT=False)
     def test_rollout_disabled_has_distinct_message_from_unverified_email(self):
+        self.client.force_login(self.user)
         response = self.client.get(reverse('accounts:security_dashboard'), secure=True)
         self.assertContains(response, 'not currently available')
         self.assertNotContains(response, 'Verify your registered email before enabling')

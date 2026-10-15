@@ -19,6 +19,7 @@ from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 from allauth.account.authentication import record_authentication
 from allauth.account.models import EmailAddress
+from allauth.socialaccount.models import SocialAccount
 from allauth.account.stages import LoginStageController
 from allauth.mfa.models import Authenticator
 from allauth.mfa.stages import AuthenticateStage
@@ -38,10 +39,45 @@ def email_enabled(user):
     return bool(getattr(settings, 'EMAIL_LOGIN_MFA_ROLLOUT', False) and EmailLoginMFASettings.objects.filter(user=user, enabled=True).exists())
 
 
+def _google_identity_confirms_address(identity, current_email):
+    """Match a Google-confirmed email to the current account address.
+
+    The identity comes from the linked social account's stored provider data.
+    Never infer verification from an OAuth connection alone; do not accept an
+    unrelated address or truthy, non-verification values such as ``'yes'``.
+    """
+    if not isinstance(identity, dict) or not current_email:
+        return False
+    claim = identity.get('email_verified', identity.get('verified_email'))
+    confirmed = claim is True or (isinstance(claim, str) and claim.strip().lower() == 'true')
+    provider_address = identity.get('email')
+    return bool(
+        confirmed and isinstance(provider_address, str)
+        and provider_address.strip().casefold() == current_email.strip().casefold()
+    )
+
+
 def verified_email(user):
-    return bool(user.email and EmailAddress.objects.filter(
-        user=user, email__iexact=user.email, verified=True,
-    ).exists())
+    """Verify the *current* registered address, including Google-confirmed identities.
+
+    Google SSO may create an account without the legacy allauth EmailAddress row.
+    Only trust an existing linked Google identity if Google's verified claim is
+    explicitly true and its email exactly matches the current account email.
+    A connected provider by itself does not prove control of a changed email.
+    """
+    address = (user.email or '').strip()
+    if not address or not user.pk:
+        return False
+    if EmailAddress.objects.filter(
+        user=user, email__iexact=address, verified=True,
+    ).exists():
+        return True
+    # A linked Google account is not sufficient on its own: the saved Google
+    # identity must contain an explicit verified claim for THIS address.
+    return any(
+        _google_identity_confirms_address(account.extra_data, address)
+        for account in SocialAccount.objects.filter(user=user, provider='google')
+    )
 
 
 class EmailOrAuthenticatorStage(AuthenticateStage):
