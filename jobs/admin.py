@@ -205,8 +205,15 @@ class ScrapedJobAdmin(admin.ModelAdmin):
     ordering = ("-scraped_at",)
     list_per_page = 20
 
+    def get_queryset(self, request):
+        """Do not offer retired-source records in the active admin workflow."""
+        queryset = super().get_queryset(request)
+        permitted = [key for key, _ in ScrapedJob.SOURCE_CHOICES]
+        return queryset.filter(source__in=permitted)
+
     fieldsets = (
         ("Search Parameters", {
+
             "fields": ("search_keyword", "search_location", "source", "is_active"),
         }),
         ("Results", {
@@ -244,7 +251,7 @@ class ScrapedJobAdmin(admin.ModelAdmin):
         GET  → show form
         POST → run scrapers, save ScrapedJob records, redirect to changelist
         """
-        from .botasaurus_scrapers.orchestrator import SCRAPERS, DEFAULT_SOURCES, scrape_all_sites
+        from .botasaurus_scrapers.orchestrator import SCRAPERS, scrape_all_sites
         from django import forms as django_forms
 
         class ScrapeForm(django_forms.Form):
@@ -268,7 +275,7 @@ class ScrapedJobAdmin(admin.ModelAdmin):
             )
             sources = django_forms.MultipleChoiceField(
                 choices=[(k, v[0]) for k, v in SCRAPERS.items()],
-                initial=DEFAULT_SOURCES,
+                initial=list(SCRAPERS.keys()),
                 widget=django_forms.CheckboxSelectMultiple,
                 label="Sites to scrape",
                 required=True,
@@ -304,13 +311,10 @@ class ScrapedJobAdmin(admin.ModelAdmin):
 
                 saved = 0
                 total_jobs = 0
-                total_leads = 0
                 for result in results:
-                    src = result.get("source", "OTHER")
-                    if not result.get("jobs") and not result.get("vacancy_leads") and not (
-                        src == "PESO_NEGROS_ORIENTAL" and result.get("success")
-                    ):
+                    if not result.get("jobs"):
                         continue
+                    src = result.get("source", "OTHER")
                     # Deactivate previous entries for same search + source
                     ScrapedJob.objects.filter(
                         search_keyword=keyword,
@@ -329,12 +333,11 @@ class ScrapedJobAdmin(admin.ModelAdmin):
                     )
                     saved += 1
                     total_jobs += result.get("total_found", 0)
-                    total_leads += result.get("lead_count", 0)
 
                 self.message_user(
                     request,
-                    f"Done! Saved {saved} scrape record(s), {total_jobs} job(s) and {total_leads} PESO vacancy lead(s). "
-                    "PESO leads are for reference only and cannot be published as individual jobs.",
+                    f"Done! Saved {saved} scrape record(s) with {total_jobs} total job(s). "
+                    "Use 'Publish to Job Board' to make them visible to users.",
                     messages.SUCCESS,
                 )
                 return HttpResponseRedirect(
@@ -353,10 +356,6 @@ class ScrapedJobAdmin(admin.ModelAdmin):
         from .admin_scraper_utils import publish_scraped_job
 
         scraped_job = ScrapedJob.objects.get(pk=pk)
-        if scraped_job.is_peso_vacancy_lead:
-            self.message_user(request, "PESO occupation counts cannot be published as jobs.", messages.WARNING)
-            return HttpResponseRedirect(reverse("admin:jobs_scrapedjob_changelist"))
-
         summary = publish_scraped_job(scraped_job, posted_by=request.user)
 
         self.message_user(
@@ -397,8 +396,6 @@ class ScrapedJobAdmin(admin.ModelAdmin):
     source_display.short_description = "Source"
 
     def publish_button(self, obj):
-        if obj.is_peso_vacancy_lead:
-            return "Review only"
         url = reverse("admin:jobs_scrapedjob_publish_single", args=[obj.pk])
         return format_html(
             '<a class="button" href="{}" style="'
@@ -413,14 +410,6 @@ class ScrapedJobAdmin(admin.ModelAdmin):
     def jobs_preview(self, obj):
         """Show first 5 jobs from the scraped data as a preview table."""
         jobs = obj.jobs_data[:5]
-        if obj.is_peso_vacancy_lead:
-            leads = obj.vacancy_leads[:10]
-            if not leads:
-                return "No provincial vacancy-category leads found."
-            return format_html(
-                "{}",
-                "; ".join(f"{lead.get('title', '')}: {lead.get('vacancy_count', 0)} (office total)" for lead in leads),
-            )
         if not jobs:
             return "No jobs in this record."
         rows = ""

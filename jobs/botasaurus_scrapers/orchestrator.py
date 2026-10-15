@@ -29,7 +29,6 @@ from .indeed_scraper import scrape_indeed
 from .kalibrr_scraper import scrape_kalibrr
 from .linkedin_scraper import scrape_linkedin
 from .philjobnet_scraper import scrape_philjobnet
-from .negros_oriental_peso_scraper import scrape_negros_oriental_peso
 from .onlinejobs_scraper import scrape_onlinejobs
 from .jora_scraper import scrape_jora
 from .mynimo_scraper import scrape_mynimo
@@ -45,16 +44,12 @@ SCRAPERS: Dict[str, tuple] = {
     "KALIBRR":    ("Kalibrr",               scrape_kalibrr),
     "BOSSJOB":    ("BossJob.ph",             scrape_bossjob),
     "PHILJOBNET": ("PhilJobNet (DOLE)",      scrape_philjobnet),
-    "PESO_NEGROS_ORIENTAL": ("Negros Oriental PESO (vacancy leads)", scrape_negros_oriental_peso),
     "ONLINEJOBS": ("OnlineJobs.ph",          scrape_onlinejobs),
     "JORA":       ("Jora Philippines",       scrape_jora),
     "MYNIMO":     ("Mynimo",                 scrape_mynimo),
     "WORKABROAD": ("WorkAbroad.ph",          scrape_workabroad),
 }
 
-
-# The PESO monitor is opt-in to avoid polling a public government source by default.
-DEFAULT_SOURCES = [key for key in SCRAPERS if key != "PESO_NEGROS_ORIENTAL"]
 
 def scrape_site(source_key: str, keyword: str, location: str) -> Dict:
     """Run a single scraper by source key and return its result dict."""
@@ -101,13 +96,13 @@ def scrape_all_sites(
         keyword:     Job search keyword.
         location:    Location string (city, region, or "Philippines").
         sources:     Optional list of source keys to limit scraping.
-                     Defaults to the regular individual-job sources.
+                     Defaults to all 10 sites.
         max_workers: Thread pool size. Keep ≤ 4 to be respectful.
 
     Returns:
         List of result dicts, one per site attempted.
     """
-    target_sources = DEFAULT_SOURCES if sources is None else sources
+    target_sources = sources or list(SCRAPERS.keys())
     results = []
 
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
