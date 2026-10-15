@@ -1,5 +1,5 @@
 """Integration tests requiring Django and the project test database."""
-from core.testing_clients import HTTPSClient
+from core.testing_clients import CompletedPortalSetupMixin, HTTPSClient
 
 import io
 import tempfile
@@ -39,7 +39,7 @@ class AttachmentValidationTests(TestCase):
             validate_message_attachment(file)
 
 
-class PrivateAttachmentAccessTests(TestCase):
+class PrivateAttachmentAccessTests(CompletedPortalSetupMixin, TestCase):
     client_class = HTTPSClient
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()

@@ -8,11 +8,12 @@ from allauth.account.models import EmailAddress
 from allauth.mfa import totp
 
 from accounts.email_login_mfa import KEY, MAX_ATTEMPTS, email_enabled, verified_email
+from core.testing_clients import CompletedPortalSetupMixin
 from accounts.models import EmailLoginMFASettings
 
 
 @override_settings(SECURE_SSL_REDIRECT=False, EMAIL_LOGIN_MFA_ROLLOUT=True)
-class EmailLoginMFATests(TestCase):
+class EmailLoginMFATests(CompletedPortalSetupMixin, TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
             username='emailstage', email='emailstage@example.org', password='StrongLoginPassword!810'

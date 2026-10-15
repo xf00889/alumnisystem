@@ -2,14 +2,16 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from core.testing_clients import CompletedPortalSetupMixin
 
 from .models import Connection
 
 
 @override_settings(SECURE_SSL_REDIRECT=False)
-class UnifiedMessageRoutingTests(TestCase):
+class UnifiedMessageRoutingTests(CompletedPortalSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
+        super().setUpTestData()
         User = get_user_model()
         cls.alice = User.objects.create_user(username='nav_alice', password='testpass')
         cls.bob = User.objects.create_user(username='nav_bob', password='testpass')
