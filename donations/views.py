@@ -16,6 +16,7 @@ from .forms import DonationForm, CampaignFilterForm, CampaignForm, PaymentProofF
 from accounts.models import User
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
+from core import pending_form_images as pending_images
 from django.db import models
 from .forms_gcash import GCashConfigForm
 import logging
@@ -70,11 +71,32 @@ def campaign_list(request):
         url = reverse('donations:public_campaign_list')
         params = request.GET.urlencode()
         return redirect(f'{url}?{params}' if params else url)
-    campaigns = Campaign.objects.filter(
-        Q(visibility='registered_alumni') | Q(visibility='public')
-    ).exclude(Q(status__in=['completed', 'cancelled']) | Q(end_date__lt=timezone.now()))
+    if can_manage_donations(request.user):
+        campaigns = Campaign.objects.all().select_related('campaign_type')
+    else:
+        campaigns = Campaign.objects.filter(
+            Q(visibility='registered_alumni') | Q(visibility='public')
+        ).exclude(Q(status__in=['completed', 'cancelled']) | Q(end_date__lt=timezone.now()))
     context = _campaign_list_context(request, campaigns)
+    if can_manage_donations(request.user):
+        return render(request, 'donations/admin_campaign_directory.html', context)
     return render(request, 'donations/campaign_list.html', context)
+
+
+@login_required
+def admin_campaign_preview(request, pk):
+    """Read-only modal fragment for authorized campaign managers."""
+    if not can_manage_donations(request.user):
+        raise PermissionDenied
+    campaign = get_object_or_404(Campaign.objects.select_related('campaign_type'), pk=pk)
+    return render(request, 'donations/partials/admin_campaign_preview.html', {'campaign': campaign})
+
+
+@login_required
+def pending_campaign_image(request, token):
+    if not can_manage_donations(request.user):
+        raise PermissionDenied
+    return pending_images.preview(request, token, 'donations.campaign.featured_image')
 
 
 def _campaign_list_context(request, campaigns):
@@ -865,11 +887,19 @@ def campaign_create(request):
         messages.error(request, _('You do not have permission to create campaigns.'))
         return redirect('donations:campaign_list')
 
+    scope = 'donations.campaign.featured_image'
+    token = request.POST.get('_pending_featured_image', '') if request.method == 'POST' else ''
     if request.method == 'POST':
-        form = CampaignForm(request.POST, request.FILES, user=request.user)
+        files = request.FILES.copy()
+        if 'featured_image' not in files and token:
+            restored = pending_images.recover(request, token, scope, 'campaign-image.jpg')
+            if restored:
+                files['featured_image'] = restored
+        form = CampaignForm(request.POST, files, user=request.user)
         if form.is_valid():
             try:
                 campaign = form.save()
+                pending_images.clear(request, token, scope)
                 
                 # Log campaign creation
                 logger.info(
@@ -885,7 +915,7 @@ def campaign_create(request):
                 )
                 
                 messages.success(request, _('Campaign created successfully!'))
-                return redirect('donations:campaign_detail', slug=campaign.slug)
+                return redirect('donations:campaign_list')
             except Exception as e:
                 logger.error(
                     f"Error creating campaign: {str(e)}",
@@ -898,10 +928,11 @@ def campaign_create(request):
     else:
         form = CampaignForm(user=request.user)
 
-    context = {
-        'form': form,
-    }
-
+    pending_token, pending_name = pending_images.hold(
+        request, request.FILES.get('featured_image'), scope, token
+    ) if request.method == 'POST' and form.errors else ('', '')
+    context = {'form': form, 'pending_image_token': pending_token,
+               'pending_image_name': pending_name}
     return render(request, 'donations/campaign_form.html', context)
 
 @login_required
@@ -920,10 +951,18 @@ def campaign_edit(request, pk):
         old_status = campaign.status
         old_goal_amount = campaign.goal_amount
         
-        form = CampaignForm(request.POST, request.FILES, instance=campaign, user=request.user)
+        scope = 'donations.campaign.featured_image'
+        token = request.POST.get('_pending_featured_image', '')
+        files = request.FILES.copy()
+        if 'featured_image' not in files and token:
+            restored = pending_images.recover(request, token, scope, 'campaign-image.jpg')
+            if restored:
+                files['featured_image'] = restored
+        form = CampaignForm(request.POST, files, instance=campaign, user=request.user)
         if form.is_valid():
             try:
                 campaign = form.save()
+                pending_images.clear(request, token, scope)
                 
                 # Log changes
                 changes = []
@@ -947,7 +986,7 @@ def campaign_edit(request, pk):
                 )
                 
                 messages.success(request, _('Campaign updated successfully!'))
-                return redirect('donations:campaign_detail', slug=campaign.slug)
+                return redirect('donations:campaign_list')
             except Exception as e:
                 logger.error(
                     f"Error updating campaign: {str(e)}",
@@ -961,10 +1000,11 @@ def campaign_edit(request, pk):
     else:
         form = CampaignForm(instance=campaign, user=request.user)
 
-    context = {
-        'form': form,
-        'campaign': campaign,
-    }
+    pending_token, pending_name = pending_images.hold(
+        request, request.FILES.get('featured_image'), scope, token
+    ) if request.method == 'POST' and form.errors else ('', '')
+    context = {'form': form, 'campaign': campaign,
+               'pending_image_token': pending_token, 'pending_image_name': pending_name}
 
     return render(request, 'donations/campaign_form.html', context)
 

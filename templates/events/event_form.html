@@ -8,8 +8,9 @@
 
 
 
+{% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin/content-management.css' %}">{% endblock %}
 {% block content %}
-<div class="container py-4">
+<div class="container py-4 staff-content-form">
     <!-- Page Header - Empty now as button moved to card header -->
     <div class="mb-4">
         <!-- Button moved to card header -->
@@ -136,6 +137,8 @@
                     
                     if (input) {
                         input.value = '';
+                        const pendingToken = document.querySelector('input[name="_pending_image"]');
+                        if (pendingToken) pendingToken.value = '';
                     }
                     
                     const clearCheckbox = document.getElementById(inputId + '-clear');
@@ -365,8 +368,11 @@
                                     <label for="{{ form.image.id_for_label }}" class="form-label">Event Image</label>
                                     <div class="image-upload-container">
                                         <div class="image-preview-wrapper" id="eventImagePreview">
-                                            {% if form.instance.image %}
-                                                <img src="{{ form.instance.image.url }}" alt="Current event image" class="preview-image" id="eventImagePreviewImg">
+                                            {% if pending_image_token %}
+                                                <img src="{% url 'events:pending_event_image' pending_image_token %}" alt="Pending event image" class="preview-image" id="eventImagePreviewImg">
+                                                <div class="image-overlay"><button type="button" class="btn-remove-image" onclick="clearImage('{{ form.image.id_for_label }}', 'eventImagePreview')">Remove</button></div>
+                                            {% elif saved_event_image_url %}
+                                                <img src="{{ saved_event_image_url }}" alt="Current event image" class="preview-image" id="eventImagePreviewImg">
                                                 <div class="image-overlay">
                                                     <button type="button" class="btn-remove-image" onclick="clearImage('{{ form.image.id_for_label }}', 'eventImagePreview')">
                                                         <i class="fas fa-trash"></i> Remove
@@ -390,6 +396,8 @@
                                                 <i class="fas fa-cloud-upload-alt"></i>
                                                 <span>Choose Event Image</span>
                                             </label>
+                                            <input type="hidden" name="_pending_image" value="{{ pending_image_token|default:'' }}">
+                                            {% if pending_image_token %}<p class="small text-success" role="status">Image retained while you correct the form: {{ pending_image_name }}</p>{% endif %}
                                             <input type="checkbox" name="image-clear" id="{{ form.image.id_for_label }}-clear" style="display: none;">
                                         </div>
                                     {% if form.image.errors %}

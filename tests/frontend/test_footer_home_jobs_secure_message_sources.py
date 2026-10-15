@@ -41,7 +41,7 @@ class PageAndAttachmentRegressions(unittest.TestCase):
             self.assertIn('@job_board_login_required\ndef ' + handler + '(request', jobs)
         access = source('jobs/access.py')
         self.assertIn("redirect('core:home')", access)
-        self.assertIn("extends job_detail_page_base", source('jobs/templates/jobs/job_detail.html'))
+        self.assertIn("extends alumni_page_base", source('jobs/templates/jobs/job_detail.html'))
         self.assertNotIn("'jobs': JobSitemap", source('norsu_alumni/urls.py'))
 
     def test_public_footer_spacing_has_one_override_owner(self):

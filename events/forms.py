@@ -43,6 +43,17 @@ class EventForm(forms.ModelForm):
             if self.instance.end_date:
                 self.initial['end_date'] = self.instance.end_date.strftime('%Y-%m-%dT%H:%M')
 
+    def clean_image(self):
+        image = self.cleaned_data.get('image')
+        from django.core.files.uploadedfile import UploadedFile
+        if isinstance(image, UploadedFile):
+            from core.pending_form_images import checked_image_bytes
+            try:
+                checked_image_bytes(image)
+            except ValueError as exc:
+                raise forms.ValidationError(str(exc))
+        return image
+
     def clean(self):
         cleaned_data = super().clean()
         start_date = cleaned_data.get('start_date')

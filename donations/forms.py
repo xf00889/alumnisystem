@@ -272,6 +272,17 @@ class CampaignForm(forms.ModelForm):
 
         return cleaned_data
 
+    def clean_featured_image(self):
+        image = self.cleaned_data.get('featured_image')
+        from django.core.files.uploadedfile import UploadedFile
+        if isinstance(image, UploadedFile):
+            from core.pending_form_images import checked_image_bytes
+            try:
+                checked_image_bytes(image)
+            except ValueError as exc:
+                raise forms.ValidationError(str(exc))
+        return image
+
     def save(self, commit=True):
         instance = super().save(commit=False)
 

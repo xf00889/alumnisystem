@@ -10,13 +10,14 @@
     {% endif %}
 {% endblock %}
 
-{% block stylesheets %}
+{% block extra_css %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'css/flatpickr.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/admin/content-management.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container py-4 staff-content-form staff-campaign-form">
     <div class="row">
         <div class="col-lg-10 mx-auto">
             <div class="card shadow">
@@ -30,7 +31,9 @@
                     </h2>
                 </div>
                 <div class="card-body">
-                    <form method="post" enctype="multipart/form-data" novalidate>
+                    <form method="post" enctype="multipart/form-data" novalidate data-confirm-submit data-confirm-title="{% if campaign %}Update campaign?{% else %}Create campaign?{% endif %}" data-confirm-text="Review all campaign information before continuing.">
+                        <input type="hidden" name="_pending_featured_image" value="{{ pending_image_token|default:'' }}">
+                        {% if pending_image_token %}<div class="alert alert-info" role="status">Your selected image is temporarily saved while you correct the form. {{ pending_image_name }}</div>{% endif %}
                         {% csrf_token %}
                         
                         {% if form.non_field_errors %}
@@ -115,6 +118,11 @@
                                         {% trans "Featured Image" %}
                                     </label>
                                     {{ form.featured_image }}
+                                    {% if pending_image_token %}
+                                      <img class="staff-form-image-preview" src="{% url 'donations:pending_campaign_image' pending_image_token %}" alt="Pending campaign image preview">
+                                    {% elif campaign.featured_image %}
+                                      <img class="staff-form-image-preview" src="{{ campaign.featured_image.url }}" alt="Current campaign image">
+                                    {% endif %}
                                     {% if form.featured_image.errors %}
                                         <div class="invalid-feedback d-block">
                                             {% for error in form.featured_image.errors %}
@@ -308,18 +316,20 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
     {{ block.super }}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{% static 'js/admin/content-management.js' %}" defer></script>
     <script src="{% static 'js/flatpickr.min.js' %}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize datetime pickers
-            flatpickr("#{{ form.start_date.id_for_label }}", {
+            if (typeof flatpickr === 'function') flatpickr("#{{ form.start_date.id_for_label }}", {
                 enableTime: true,
                 dateFormat: "Y-m-d H:i",
             });
             
-            flatpickr("#{{ form.end_date.id_for_label }}", {
+            if (typeof flatpickr === 'function') flatpickr("#{{ form.end_date.id_for_label }}", {
                 enableTime: true,
                 dateFormat: "Y-m-d H:i",
             });

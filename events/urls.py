@@ -6,6 +6,7 @@ app_name = 'events'
 urlpatterns = [
     path('', views.EventListView.as_view(), name='event_list'),
     path('create/', views.EventCreateView.as_view(), name='event_create'),
+    path('pending-event-image/<str:token>/', views.pending_event_image, name='pending_event_image'),
     path('<int:pk>/', views.EventDetailView.as_view(), name='event_detail'),
     path('<int:pk>/modal/', views.EventModalView.as_view(), name='event_modal'),
     path('<int:pk>/update/', views.EventUpdateView.as_view(), name='event_update'),

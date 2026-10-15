@@ -13,6 +13,7 @@ from django.views.decorators.clickjacking import xframe_options_deny
 from django.utils.decorators import method_decorator
 from django.contrib.messages.views import SuccessMessageMixin
 from django.http import JsonResponse
+from core import pending_form_images as pending_images
 from .models import Event, EventRSVP
 from .forms import EventForm, EventRSVPForm, PublicEventForm
 from alumni_groups.models import AlumniGroup
@@ -26,6 +27,12 @@ class EventListView(LoginRequiredMixin, ListView):
     context_object_name = 'events'
     paginate_by = 12
     login_url = 'account_login'
+
+    def get_template_names(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser or getattr(getattr(user, 'profile', None), 'is_alumni_coordinator', False):
+            return ['events/event_list_admin.html']
+        return [self.template_name]
 
     def get_queryset(self):
         import time
@@ -58,14 +65,18 @@ class EventListView(LoginRequiredMixin, ListView):
         )
 
         # /events/ should only display published/completed statuses.
-        queryset = queryset.filter(status__in=['published', 'completed'])
+        elevated = (self.request.user.is_staff or self.request.user.is_superuser or
+                    getattr(getattr(self.request.user, 'profile', None), 'is_alumni_coordinator', False))
+        if not elevated:
+            queryset = queryset.filter(status__in=['published', 'completed'])
 
         # Get filter parameters
         status = self.request.GET.get('status')
         search = self.request.GET.get('search')
 
         # Apply filters
-        if status in ['published', 'completed']:
+        allowed_statuses = ['published', 'completed', 'draft', 'cancelled'] if elevated else ['published', 'completed']
+        if status in allowed_statuses:
             queryset = queryset.filter(status=status)
 
         if search:
@@ -135,7 +146,7 @@ class EventListView(LoginRequiredMixin, ListView):
             'search_query': self.request.GET.get('search', ''),
             'current_status': (
                 self.request.GET.get('status', '')
-                if self.request.GET.get('status', '') in ['published', 'completed']
+                if self.request.GET.get('status', '') in ['published', 'completed', 'draft', 'cancelled']
                 else ''
             ),
         })
@@ -231,12 +242,21 @@ class EventModalView(LoginRequiredMixin, DetailView):
     """View for loading event details in modal"""
     model = Event
     template_name = 'events/event_detail_modal.html'
+
+    def get_template_names(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser or getattr(getattr(user, 'profile', None), 'is_alumni_coordinator', False):
+            return ['events/admin_event_detail_modal.html']
+        return [self.template_name]
     context_object_name = 'event'
     login_url = 'account_login'
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
-        if obj.status in ['draft', 'cancelled']:
+        user = self.request.user
+        elevated = (user.is_staff or user.is_superuser or
+                    getattr(getattr(user, 'profile', None), 'is_alumni_coordinator', False))
+        if obj.status in ['draft', 'cancelled'] and not elevated:
             raise PermissionDenied("This event is not available.")
         return obj
 
@@ -262,7 +282,53 @@ class EventModalView(LoginRequiredMixin, DetailView):
         }
         return context
 
-class EventCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+@login_required
+def pending_event_image(request, token):
+    user = request.user
+    if not (user.is_staff or user.is_superuser or
+            getattr(getattr(user, 'profile', None), 'is_alumni_coordinator', False)):
+        raise PermissionDenied
+    return pending_images.preview(request, token, 'events.event.image')
+
+
+class EventImageRecoveryMixin:
+    """Keep a validated upload after a separate event field fails validation."""
+    image_scope = 'events.event.image'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        if self.request.method == 'POST':
+            token = self.request.POST.get('_pending_image', '')
+            files = self.request.FILES.copy()
+            if 'image' not in files and token:
+                recovered = pending_images.recover(self.request, token, self.image_scope, 'event-image.jpg')
+                if recovered:
+                    files['image'] = recovered
+            kwargs['files'] = files
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.method == 'POST' and context['form'].errors:
+            token = self.request.POST.get('_pending_image', '')
+            new_token, filename = pending_images.hold(
+                self.request, self.request.FILES.get('image'), self.image_scope, token)
+            context['pending_image_token'] = new_token
+            context['pending_image_name'] = filename
+        # A bound ModelForm can temporarily assign an unsaved file name to
+        # form.instance.image. Always fetch the saved image for edit previews.
+        if getattr(self, 'object', None) and self.object.pk:
+            stored_event = Event.objects.only('image').get(pk=self.object.pk)
+            context['saved_event_image_url'] = stored_event.image.url if stored_event.image else ''
+        return context
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        pending_images.clear(self.request, self.request.POST.get('_pending_image', ''), self.image_scope)
+        return response
+
+
+class EventCreateView(EventImageRecoveryMixin, LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Event
     form_class = EventForm
     template_name = 'events/event_form.html'
@@ -310,7 +376,7 @@ class EventCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         )
         return super().form_invalid(form)
 
-class EventUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class EventUpdateView(EventImageRecoveryMixin, LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Event
     form_class = EventForm
     template_name = 'events/event_form.html'
