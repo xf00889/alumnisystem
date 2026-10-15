@@ -18,151 +18,226 @@
 <div class="security-dashboard">
     <div class="container">
         {% if use_alumni_layout %}{% include 'alumni/components/breadcrumbs.html' with area='Security Dashboard' within_page_shell=True %}{% endif %}
-        <!-- Dashboard Header (Matching Other Pages) -->
-        <div class="dashboard-header">
-            <h2><i class="fas fa-shield-alt"></i>Security Dashboard</h2>
-            <p>Manage your account security settings</p>
-        </div>
-        
-        <div class="row">
-            <!-- Left Column -->
-            <div class="col-lg-6">
-                <!-- Security Overview -->
-                <div class="dashboard-card">
-                    <div class="card-header-custom">
-                        <h3><i class="fas fa-lock me-2"></i>Security Overview</h3>
+
+        <section class="dashboard-header security-hero" aria-label="Security dashboard overview">
+            <div class="security-hero__copy">
+                <p class="security-hero__eyebrow">Your account protection center</p>
+                <h2><i class="fas fa-shield-alt" aria-hidden="true"></i>Security Dashboard</h2>
+                <p>Manage your sign-in protection, account recovery options, and verification methods from one secure workspace.</p>
+            </div>
+            <div class="security-hero__stats" role="list" aria-label="Account security summary">
+                <div class="security-stat" role="listitem">
+                    <span class="security-stat__label">Email status</span>
+                    <strong>{% if email_verified %}Verified{% else %}Pending{% endif %}</strong>
+                    <small>{{ user.email }}</small>
+                </div>
+                <div class="security-stat" role="listitem">
+                    <span class="security-stat__label">Authenticator app</span>
+                    <strong>{% if two_factor_enabled %}Enabled{% else %}Not enabled{% endif %}</strong>
+                    <small>{% if two_factor_enabled %}Protected with 2FA{% else %}Recommended next step{% endif %}</small>
+                </div>
+                <div class="security-stat" role="listitem">
+                    <span class="security-stat__label">Email sign-in verification</span>
+                    <strong>{% if email_mfa_enabled %}Enabled{% else %}Off{% endif %}</strong>
+                    <small>{% if email_mfa_rollout_enabled %}Email-code fallback available{% else %}Rollout controlled by admin{% endif %}</small>
+                </div>
+            </div>
+        </section>
+
+        <div class="row g-4 align-items-stretch">
+            <div class="col-xl-8">
+                <div class="dashboard-card security-panel security-panel--overview">
+                    <div class="card-header-custom security-panel__header">
+                        <div>
+                            <p class="security-panel__eyebrow">Security controls</p>
+                            <h3><i class="fas fa-lock me-2" aria-hidden="true"></i>Security Overview</h3>
+                        </div>
+                        <span class="security-panel__badge">Review each setting below</span>
                     </div>
-                    
-                    <div class="security-body">
-                        <!-- Account Status -->
-                        <div class="security-item">
-                            <div class="security-info">
-                                <h5>Account Status</h5>
-                                <p>Your account security status</p>
+
+                    <div class="security-body security-stack">
+                        <article class="security-item security-item--highlight">
+                            <div class="security-item__main">
+                                <div class="security-item__icon security-item__icon--neutral"><i class="fas fa-user-check" aria-hidden="true"></i></div>
+                                <div class="security-info">
+                                    <h5>Account Status</h5>
+                                    <p>Your account security status and access remain active.</p>
+                                </div>
                             </div>
                             <span class="security-status status-secure">Active</span>
-                        </div>
-                        
-                        <!-- Email Verification -->
-                        <div class="security-item">
-                            <div class="security-info">
-                                <h5>Email Verification</h5>
-                                <p>Email: {{ user.email }}</p>
+                        </article>
+
+                        <article class="security-item security-item--highlight">
+                            <div class="security-item__main">
+                                <div class="security-item__icon security-item__icon--secure"><i class="fas fa-envelope-circle-check" aria-hidden="true"></i></div>
+                                <div class="security-info">
+                                    <h5>Email Verification</h5>
+                                    <p>Email: {{ user.email }}</p>
+                                </div>
                             </div>
                             {% if email_verified %}
                                 <span class="security-status status-secure">Verified</span>
                             {% else %}
                                 <span class="security-status status-warning">Pending</span>
                             {% endif %}
-                        </div>
-                        
-                        <!-- Authenticator app + recovery codes: real allauth MFA status -->
-                        <div class="security-item security-item--mfa">
-                            <div class="security-info">
-                                <h5><i class="fas fa-mobile-alt me-2" aria-hidden="true"></i>Two-factor authentication</h5>
-                                <p>{% if two_factor_enabled %}Authenticator protection enabled. Sign-in requires your verification code.{% else %}Add a second sign-in step using your authenticator app.{% endif %}</p>
-                                <a class="btn btn-sm btn-outline-primary mt-2" href="{% url 'mfa_index' %}">
-                                    {% if two_factor_enabled %}Manage 2FA and recovery codes{% else %}Set up two-factor authentication{% endif %}
-                                </a>
+                        </article>
+
+                        <article class="security-item security-item--mfa security-item--highlight">
+                            <div class="security-item__main">
+                                <div class="security-item__icon security-item__icon--secure"><i class="fas fa-mobile-alt" aria-hidden="true"></i></div>
+                                <div class="security-info">
+                                    <h5>Two-factor authentication</h5>
+                                    <p>{% if two_factor_enabled %}Authenticator protection enabled. Sign-in requires your verification code.{% else %}Add a second sign-in step using your authenticator app.{% endif %}</p>
+                                    <div class="security-actions">
+                                        <a class="btn btn-sm btn-outline-primary mt-2" href="{% url 'mfa_index' %}">
+                                            {% if two_factor_enabled %}Manage 2FA and recovery codes{% else %}Set up two-factor authentication{% endif %}
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                             {% if two_factor_enabled %}
                                 <span class="security-status status-secure">Enabled</span>
                             {% else %}
                                 <span class="security-status status-warning">Not enabled</span>
                             {% endif %}
-                        </div>
+                        </article>
 
-                        <!-- Password Security -->
-                        <div class="security-item security-item--email-mfa">
-                            <div class="security-info">
-                                <h5><i class="fas fa-envelope me-2" aria-hidden="true"></i>Email sign-in verification</h5>
-                                <p>When enabled, send a one-time code to your verified account email before login completes. This is weaker than an authenticator app and depends on your email account's security.</p>
-                                {% if email_mfa_rollout_enabled and email_verified %}
-                                <form action="{% url 'accounts:email_login_mfa_settings' %}" method="post" class="security-actions">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm {% if email_mfa_enabled %}btn-outline-primary{% else %}btn-primary{% endif %}" name="action" value="{% if email_mfa_enabled %}disable{% else %}enable{% endif %}">
-                                        {% if email_mfa_enabled %}Turn off email verification{% else %}Enable email verification{% endif %}
-                                    </button>
-                                </form>
-                                {% elif not email_mfa_rollout_enabled %}
-                                <p class="small">Email sign-in verification is not currently available. An administrator must enable this option after confirming email delivery.</p>
-                                {% else %}
-                                <p class="small">Verify your registered email before enabling this method.</p>
-                                {% endif %}
+                        <article class="security-item security-item--email-mfa security-item--highlight">
+                            <div class="security-item__main">
+                                <div class="security-item__icon security-item__icon--info"><i class="fas fa-envelope-open-text" aria-hidden="true"></i></div>
+                                <div class="security-info">
+                                    <h5>Email sign-in verification</h5>
+                                    <p>When enabled, send a one-time code to your verified account email before login completes. This is weaker than an authenticator app and depends on your email account's security.</p>
+                                    {% if email_mfa_rollout_enabled and email_verified %}
+                                    <form action="{% url 'accounts:email_login_mfa_settings' %}" method="post" class="security-actions">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm {% if email_mfa_enabled %}btn-outline-primary{% else %}btn-primary{% endif %}" name="action" value="{% if email_mfa_enabled %}disable{% else %}enable{% endif %}">
+                                            {% if email_mfa_enabled %}Turn off email verification{% else %}Enable email verification{% endif %}
+                                        </button>
+                                    </form>
+                                    {% elif not email_mfa_rollout_enabled %}
+                                    <p class="small">Email sign-in verification is not currently available. An administrator must enable this option after confirming email delivery.</p>
+                                    {% else %}
+                                    <p class="small">Verify your registered email before enabling this method.</p>
+                                    {% endif %}
+                                </div>
                             </div>
                             <span class="security-status {% if email_mfa_enabled %}status-secure{% else %}status-warning{% endif %}">{% if email_mfa_enabled %}Enabled{% else %}Off{% endif %}</span>
-                        </div>
+                        </article>
 
-                        <div class="security-item">
-                            <div class="security-info">
-                                <h5>Password Security</h5>
-                                {% if user.has_usable_password %}
-                                    <p>Change your password using your current password or a secure email link.</p>
-                                    <div class="security-actions">
-                                        <a class="btn btn-sm btn-primary" href="{% url 'accounts:change_password' %}">Change password</a>
-                                        <a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:password_recovery_request' %}">Forgot current password?</a>
-                                    </div>
-                                {% else %}
-                                    <p>You currently sign in using a connected provider, without a local password.</p>
-                                    <div class="security-actions">
-                                        <a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:password_recovery_request' %}">Set a password via email verification</a>
-                                    </div>
-                                {% endif %}
+                        <article class="security-item security-item--highlight">
+                            <div class="security-item__main">
+                                <div class="security-item__icon security-item__icon--warm"><i class="fas fa-key" aria-hidden="true"></i></div>
+                                <div class="security-info">
+                                    <h5>Password Security</h5>
+                                    {% if user.has_usable_password %}
+                                        <p>Change your password using your current password or a secure email link.</p>
+                                        <div class="security-actions">
+                                            <a class="btn btn-sm btn-primary" href="{% url 'accounts:change_password' %}">Change password</a>
+                                            <a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:password_recovery_request' %}">Forgot current password?</a>
+                                        </div>
+                                    {% else %}
+                                        <p>You currently sign in using a connected provider, without a local password.</p>
+                                        <div class="security-actions">
+                                            <a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:password_recovery_request' %}">Set a password via email verification</a>
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
                             <span class="security-status {% if user.has_usable_password %}status-secure{% else %}status-warning{% endif %}">{% if user.has_usable_password %}Enabled{% else %}Not set{% endif %}</span>
-                        </div>
-                        
-                        <!-- Login History -->
-                        <div class="security-item">
-                            <div class="security-info">
-                                <h5>Last Login</h5>
-                                <p>{{ user.last_login|date:"M d, Y H:i"|default:"Never" }}</p>
-                            </div>
-                            <span class="security-status status-secure">Active</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Right Column -->
-            <div class="col-lg-6">
-                <!-- Security Activity -->
-                <div class="dashboard-card">
-                    <div class="card-header-custom">
-                        <h3><i class="fas fa-history me-2"></i>Recent Security Activity</h3>
-                    </div>
-                    
-                    <div class="security-body">
-                        <div class="activity-log">
-                            <div class="activity-item">
-                                <div class="activity-icon login">
-                                    <i class="fas fa-sign-in-alt"></i>
-                                </div>
-                                <div class="activity-info">
-                                    <h6>Successful Login</h6>
+                        </article>
+
+                        <article class="security-item security-item--highlight security-item--final">
+                            <div class="security-item__main">
+                                <div class="security-item__icon security-item__icon--neutral"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i></div>
+                                <div class="security-info">
+                                    <h5>Last Login</h5>
                                     <p>{{ user.last_login|date:"M d, Y H:i"|default:"Never" }}</p>
                                 </div>
                             </div>
-                            
-                            <div class="activity-item">
-                                <div class="activity-icon password">
-                                    <i class="fas fa-key"></i>
+                            <span class="security-status status-secure">Active</span>
+                        </article>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="security-side-stack">
+                    <div class="dashboard-card security-panel security-panel--activity">
+                        <div class="card-header-custom security-panel__header">
+                            <div>
+                                <p class="security-panel__eyebrow">Recent activity</p>
+                                <h3><i class="fas fa-history me-2" aria-hidden="true"></i>Recent Security Activity</h3>
+                            </div>
+                        </div>
+
+                        <div class="security-body">
+                            <div class="activity-log activity-log--timeline">
+                                <div class="activity-item">
+                                    <div class="activity-icon login"><i class="fas fa-sign-in-alt" aria-hidden="true"></i></div>
+                                    <div class="activity-info">
+                                        <h6>Successful Login</h6>
+                                        <p>{{ user.last_login|date:"M d, Y H:i"|default:"Never" }}</p>
+                                    </div>
                                 </div>
-                                <div class="activity-info">
-                                    <h6>Password settings</h6>
-                                    <p>Use the secure password-change controls in the Security Overview.</p>
+
+                                <div class="activity-item">
+                                    <div class="activity-icon password"><i class="fas fa-key" aria-hidden="true"></i></div>
+                                    <div class="activity-info">
+                                        <h6>Password settings</h6>
+                                        <p>Use the secure password-change controls in the Security Overview.</p>
+                                    </div>
+                                </div>
+
+                                <div class="activity-item">
+                                    <div class="activity-icon security"><i class="fas fa-shield-alt" aria-hidden="true"></i></div>
+                                    <div class="activity-info">
+                                        <h6>Account Created</h6>
+                                        <p>{{ user.date_joined|date:"M d, Y H:i" }}</p>
+                                    </div>
                                 </div>
                             </div>
-                            
-                            <div class="activity-item">
-                                <div class="activity-icon security">
-                                    <i class="fas fa-shield-alt"></i>
-                                </div>
-                                <div class="activity-info">
-                                    <h6>Account Created</h6>
-                                    <p>{{ user.date_joined|date:"M d, Y H:i" }}</p>
-                                </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card security-panel security-panel--guidance">
+                        <div class="card-header-custom security-panel__header">
+                            <div>
+                                <p class="security-panel__eyebrow">Recommended next steps</p>
+                                <h3><i class="fas fa-sparkles me-2" aria-hidden="true"></i>Security Checklist</h3>
                             </div>
+                        </div>
+                        <div class="security-body">
+                            <ul class="security-checklist">
+                                <li class="{% if email_verified %}is-done{% endif %}">
+                                    <span class="security-checklist__bullet"><i class="fas {% if email_verified %}fa-check{% else %}fa-circle{% endif %}" aria-hidden="true"></i></span>
+                                    <div>
+                                        <strong>Keep your email verified</strong>
+                                        <p>This allows account recovery and email-based sign-in protection.</p>
+                                    </div>
+                                </li>
+                                <li class="{% if two_factor_enabled %}is-done{% endif %}">
+                                    <span class="security-checklist__bullet"><i class="fas {% if two_factor_enabled %}fa-check{% else %}fa-circle{% endif %}" aria-hidden="true"></i></span>
+                                    <div>
+                                        <strong>Enable authenticator-based 2FA</strong>
+                                        <p>The strongest option for protecting your NORSU Alumni account.</p>
+                                    </div>
+                                </li>
+                                <li class="{% if user.has_usable_password %}is-done{% endif %}">
+                                    <span class="security-checklist__bullet"><i class="fas {% if user.has_usable_password %}fa-check{% else %}fa-circle{% endif %}" aria-hidden="true"></i></span>
+                                    <div>
+                                        <strong>Maintain a recoverable password</strong>
+                                        <p>Use a strong password or set one if you currently sign in only with a provider.</p>
+                                    </div>
+                                </li>
+                                <li class="{% if email_mfa_enabled %}is-done{% endif %}">
+                                    <span class="security-checklist__bullet"><i class="fas {% if email_mfa_enabled %}fa-check{% else %}fa-circle{% endif %}" aria-hidden="true"></i></span>
+                                    <div>
+                                        <strong>Use email sign-in verification as backup</strong>
+                                        <p>Helpful when enabled, but still weaker than authenticator-based 2FA.</p>
+                                    </div>
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>
