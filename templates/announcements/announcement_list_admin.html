@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Announcement Administration | NORSU Alumni{% endblock %}
+{% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin/content-management.css' %}">{% endblock %}
+{% block content %}
+<div class="container-fluid staff-content-directory" data-staff-directory="announcements">
+  <header class="admin-page-header admin-page-header--action-row"><div class="admin-page-header__content"><p class="admin-page-header__eyebrow">ADMINISTRATION / COMMUNICATIONS</p><h1 class="admin-page-header__title">Announcement Administration</h1><p class="admin-page-header__subtitle">Create and manage official alumni announcements.</p></div><div class="admin-page-header__actions"><a class="btn btn-light" href="{% url 'announcements:announcement-create' %}"><i class="fas fa-plus" aria-hidden="true"></i> New Announcement</a></div></header>
+  <form class="staff-content-filters" method="get" role="search" aria-label="Filter announcements">
+    <label>Search announcements<input class="form-control" type="search" name="q" value="{{ search_query }}" placeholder="Title or content"></label>
+    <label>Priority<select class="form-select" name="priority"><option value="">All priorities</option><option value="URGENT" {% if current_priority == 'URGENT' %}selected{% endif %}>Urgent</option><option value="HIGH" {% if current_priority == 'HIGH' %}selected{% endif %}>High</option><option value="MEDIUM" {% if current_priority == 'MEDIUM' %}selected{% endif %}>Medium</option><option value="LOW" {% if current_priority == 'LOW' %}selected{% endif %}>Low</option></select></label>
+    <div class="staff-content-filter-actions"><button type="submit" class="btn btn-primary">Search</button><a class="btn btn-outline-secondary" href="{% url 'announcements:announcement-list' %}">Clear</a></div>
+  </form>
+  <section class="staff-content-results"><div class="staff-content-heading"><h2>Announcements</h2><span>{{ page_obj.paginator.count }} announcement{{ page_obj.paginator.count|pluralize }}</span></div>
+    <div class="table-responsive"><table class="table staff-content-table"><thead><tr><th>Announcement</th><th>Category</th><th>Audience</th><th>Priority</th><th>Posted</th><th>Actions</th></tr></thead><tbody>
+      {% for announcement in announcements %}<tr>
+        <td><div class="staff-content-name">{{ announcement.title }}</div><p>{{ announcement.content|striptags|truncatewords:16 }}</p></td>
+        <td>{{ announcement.category.name|default:'Uncategorized' }}</td><td>{{ announcement.get_target_audience_display }}</td><td><span class="staff-content-status">{{ announcement.get_priority_level_display }}</span></td><td>{{ announcement.date_posted|date:'M d, Y' }}</td>
+        <td><div class="staff-content-actions"><button type="button" class="btn btn-sm btn-outline-primary" data-modal-url="{% url 'announcements:admin-announcement-preview' announcement.pk %}" data-modal-title="Announcement details">Details</button><a href="{% url 'announcements:announcement-update' announcement.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a><a href="{% url 'announcements:announcement-delete' announcement.pk %}" class="btn btn-sm btn-outline-danger">Delete</a></div></td>
+      </tr>{% empty %}<tr><td colspan="6" class="text-center py-4">No announcements match your filters.</td></tr>{% endfor %}
+    </tbody></table></div>
+    {% if page_obj.has_other_pages %}<nav class="staff-content-pagination" aria-label="Announcement pages">{% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ search_query|urlencode }}&priority={{ current_priority|urlencode }}">Previous</a>{% endif %}<span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ search_query|urlencode }}&priority={{ current_priority|urlencode }}">Next</a>{% endif %}</nav>{% endif %}
+  </section>
+</div>
+<dialog class="staff-content-modal" id="staffContentDialog" aria-labelledby="staffContentDialogTitle"><header><h2 id="staffContentDialogTitle">Announcement details</h2><button type="button" data-modal-close aria-label="Close details">&times;</button></header><div data-modal-body></div></dialog>
+{% endblock %}
+{% block extra_js %}{{ block.super }}<script src="{% static 'js/admin/content-management.js' %}" defer></script>{% endblock %}

@@ -50,6 +50,12 @@ class PublicAnnouncementListView(ListView):
                 Q(content__icontains=search_query)
             )
         
+        # Administrative priority filter; not offered on the member directory.
+        if self.get_template_names()[0] == 'announcements/announcement_list_admin.html':
+            priority = self.request.GET.get('priority', '').upper()
+            if priority in {'URGENT', 'HIGH', 'MEDIUM', 'LOW'}:
+                queryset = queryset.filter(priority_level=priority)
+
         # Apply category filter
         categories = self.request.GET.getlist('category')
         if categories:
@@ -63,6 +69,7 @@ class PublicAnnouncementListView(ListView):
         
         # Add filter state to context
         context['search_query'] = self.request.GET.get('q', '')
+        context['current_priority'] = self.request.GET.get('priority', '').upper()
         context['selected_categories'] = [int(cat) for cat in self.request.GET.getlist('category')]
         context['is_public_view'] = True
         
@@ -114,8 +121,15 @@ class AnnouncementListView(LoginRequiredMixin, ListView):
     context_object_name = 'announcements'
     paginate_by = 10
     
+    def get_template_names(self):
+        user = self.request.user
+        is_manager = user.is_staff or user.is_superuser or getattr(
+            getattr(user, 'profile', None), 'is_alumni_coordinator', False
+        )
+        return ['announcements/announcement_list_admin.html'] if is_manager else [self.template_name]
+
     def get_queryset(self):
-        queryset = Announcement.objects.filter(is_active=True).order_by('-date_posted')
+        queryset = Announcement.objects.filter(is_active=True).select_related('category').order_by('-date_posted')
         
         # Apply search filter
         search_query = self.request.GET.get('q')
@@ -125,6 +139,12 @@ class AnnouncementListView(LoginRequiredMixin, ListView):
                 Q(content__icontains=search_query)
             )
         
+        # Administrative priority filter; not offered on the member directory.
+        if self.get_template_names()[0] == 'announcements/announcement_list_admin.html':
+            priority = self.request.GET.get('priority', '').upper()
+            if priority in {'URGENT', 'HIGH', 'MEDIUM', 'LOW'}:
+                queryset = queryset.filter(priority_level=priority)
+
         # Apply category filter
         categories = self.request.GET.getlist('category')
         if categories:
@@ -138,6 +158,7 @@ class AnnouncementListView(LoginRequiredMixin, ListView):
         
         # Add filter state to context
         context['search_query'] = self.request.GET.get('q', '')
+        context['current_priority'] = self.request.GET.get('priority', '').upper()
         context['selected_categories'] = [int(cat) for cat in self.request.GET.getlist('category')]
         
         return context
@@ -443,3 +464,19 @@ def announcement_detail_api(request, pk):
         ),
     }
     return JsonResponse({'status': 'success', 'announcement': data})
+
+
+@login_required
+def admin_announcement_preview(request, pk):
+    """Read-only admin modal; do not expose inactive or member-only details to outsiders."""
+    manager = request.user.is_staff or request.user.is_superuser or getattr(
+        getattr(request.user, 'profile', None), 'is_alumni_coordinator', False
+    )
+    if not manager:
+        raise PermissionDenied('Announcement management permission required.')
+    announcement = get_object_or_404(Announcement.objects.select_related('category'), pk=pk)
+    response = render(request, 'announcements/partials/admin_announcement_preview.html', {
+        'announcement': announcement,
+    })
+    response['Cache-Control'] = 'private, no-store'
+    return response

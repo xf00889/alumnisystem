@@ -29,23 +29,6 @@
         <p class="directory-subtitle">Discover and manage upcoming events and activities</p>
     </div>
     
-    <!-- View Toggle Section -->
-    <div class="view-toggle-section">
-        <div class="view-toggle-container">
-            <label class="view-toggle-label">View Mode:</label>
-            <div class="view-toggle-buttons">
-                <button type="button" id="cardViewBtn" class="view-toggle-btn active" data-view="card">
-                    <i class="fas fa-th-large"></i>
-                    Card View
-                </button>
-                <button type="button" id="tableViewBtn" class="view-toggle-btn" data-view="table">
-                    <i class="fas fa-table"></i>
-                    Tabular View
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Search Section -->
     <div class="search-section">
         <div class="search-form">
@@ -103,10 +86,6 @@
         {% for event in events %}
         <div class="event-card" data-id="{{ event.pk }}">
             <div class="event-header">
-                <div class="event-checkbox">
-                    <input type="checkbox" class="row-checkbox form-check-input" 
-                           value="{{ event.pk }}">
-                </div>
                 <div class="event-status">
                     <span class="status-badge status-{{ event.status }}">
                         <i class="fas {% if event.status == 'published' %}fa-check-circle{% elif event.status == 'draft' %}fa-edit{% elif event.status == 'cancelled' %}fa-times-circle{% else %}fa-calendar-check{% endif %}"></i>
@@ -179,81 +158,6 @@
         {% endfor %}
     </div>
 
-    <!-- Table View -->
-    <div class="events-table" id="eventsTable">
-        <table>
-            <thead>
-                <tr>
-                    <th width="5%">
-                        <input type="checkbox" id="selectAllTable" class="form-check-input">
-                    </th>
-                    <th width="25%">Title</th>
-                    <th width="35%">Description</th>
-                    <th width="15%">Status</th>
-                    <th width="10%">Date</th>
-                    <th width="10%">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for event in events %}
-                <tr data-id="{{ event.pk }}">
-                    <td>
-                        <input type="checkbox" class="row-checkbox form-check-input table-checkbox" 
-                               value="{{ event.pk }}">
-                    </td>
-                    <td>
-                        <div class="table-title" onclick="openEventModal({{ event.pk }})">{{ event.title }}</div>
-                        <div class="table-meta">
-                            <span><i class="fas fa-calendar"></i> {{ event.start_date|date:"M d, Y" }}</span>
-                            <span><i class="fas fa-users"></i> {{ event.rsvps.count }} RSVPs</span>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="table-description">{{ event.description|truncatewords:20 }}</div>
-                        <div class="table-meta">
-                            <span><i class="fas {% if event.is_virtual %}fa-video{% else %}fa-map-marker-alt{% endif %}"></i> {% if event.is_virtual %}Virtual Event{% else %}{{ event.location }}{% endif %}</span>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="status-badge status-{{ event.status }}">
-                            <i class="fas {% if event.status == 'published' %}fa-check-circle{% elif event.status == 'draft' %}fa-edit{% elif event.status == 'cancelled' %}fa-times-circle{% else %}fa-calendar-check{% endif %}"></i>
-                            {{ event.get_status_display }}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="table-meta">
-                            <span>{{ event.start_date|date:"M d, Y" }}</span>
-                            <span>{{ event.start_date|date:"g:i A" }}</span>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="table-actions">
-                            <button class="table-action-btn view-details-btn" data-event-id="{{ event.pk }}">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            {% if user.is_staff or user.is_superuser %}
-                            <a href="{% url 'events:event_update' event.pk %}" class="table-action-btn">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <button class="table-action-btn delete-btn" data-event-id="{{ event.pk }}">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            {% elif user.profile.is_alumni_coordinator %}
-                            <a href="{% url 'events:event_update' event.pk %}" class="table-action-btn">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <button class="table-action-btn delete-btn" data-event-id="{{ event.pk }}">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
     {% else %}
     <div class="text-center py-5">
         <div class="mb-4">
@@ -266,10 +170,10 @@
 </div>
 
 <!-- Event Modal -->
-<div class="modal" id="eventModal">
+<div class="modal" id="eventModal" role="dialog" aria-modal="true" aria-labelledby="eventModalTitle">
     <div class="modal-dialog">
         <div class="modal-header">
-            <h2 class="modal-title">Event Details</h2>
+            <h2 class="modal-title" id="eventModalTitle">Event Details</h2>
             <button type="button" class="modal-close" onclick="closeEventModal()" aria-label="Close event details">
                 <i class="fas fa-times"></i>
             </button>
@@ -278,17 +182,6 @@
             <!-- Content will be loaded dynamically -->
         </div>
         <div class="modal-footer">
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeEventModal()">
-                    <i class="fas fa-times me-1"></i>Close
-                </button>
-                <button class="btn btn-primary" id="modalEditBtn" style="display: none;">
-                    <i class="fas fa-edit me-1"></i>Edit
-                </button>
-                <button class="btn btn-danger" id="modalDeleteBtn" style="display: none;">
-                    <i class="fas fa-trash me-1"></i>Delete
-                </button>
-            </div>
             <div class="modal-share">
                 <span class="me-2">Share:</span>
                 <a href="#" class="modal-share-button share-facebook" data-platform="facebook">
@@ -326,8 +219,6 @@ class EventsTable {
         this.selectedRows = new Set();
         this.searchInput = document.getElementById('searchInput');
         this.searchButton = document.getElementById('searchButton');
-        this.currentView = localStorage.getItem('eventsView') || 'card';
-        this.initViewToggle();
         this.selectedCount = document.getElementById('selectedCount');
         this.filterButtons = document.querySelectorAll('.filter-button');
         this.cards = document.querySelectorAll('.event-card');
@@ -339,54 +230,6 @@ class EventsTable {
         this.setupSearch();
         this.setupFilters();
         this.setupCheckboxes();
-        this.setInitialView();
-    }
-    
-    initViewToggle() {
-        const cardViewBtn = document.getElementById('cardViewBtn');
-        const tableViewBtn = document.getElementById('tableViewBtn');
-        const eventsGrid = document.getElementById('eventsGrid');
-        const eventsTable = document.getElementById('eventsTable');
-        
-        if (cardViewBtn) {
-            cardViewBtn.addEventListener('click', () => {
-                this.switchView('card');
-            });
-        }
-        
-        if (tableViewBtn) {
-            tableViewBtn.addEventListener('click', () => {
-                this.switchView('table');
-            });
-        }
-    }
-    
-    switchView(view) {
-        const cardViewBtn = document.getElementById('cardViewBtn');
-        const tableViewBtn = document.getElementById('tableViewBtn');
-        const eventsGrid = document.getElementById('eventsGrid');
-        const eventsTable = document.getElementById('eventsTable');
-        
-        // Update button states
-        if (view === 'card') {
-            cardViewBtn.classList.add('active');
-            tableViewBtn.classList.remove('active');
-            eventsGrid.style.display = 'grid';
-            eventsTable.classList.remove('show');
-        } else {
-            tableViewBtn.classList.add('active');
-            cardViewBtn.classList.remove('active');
-            eventsGrid.style.display = 'none';
-            eventsTable.classList.add('show');
-        }
-        
-        // Save preference
-        localStorage.setItem('eventsView', view);
-        this.currentView = view;
-    }
-    
-    setInitialView() {
-        this.switchView(this.currentView);
     }
     
     setupSearch() {
@@ -503,19 +346,19 @@ class EventsTable {
     }
     
     filterCards() {
-        const searchTerm = this.searchInput.value.toLowerCase();
-        const activeFilter = document.querySelector('.filter-button.active').dataset.filter;
+        const searchTerm = (this.searchInput?.value || '').toLowerCase();
+        const activeFilter = document.querySelector('.filter-button.active')?.dataset.filter || 'all';
         
         this.cards.forEach(card => {
             const title = card.querySelector('.event-title').textContent.toLowerCase();
-            const description = card.querySelector('.event-description').textContent.toLowerCase();
+            const description = (card.querySelector('.event-preview')?.textContent || '').toLowerCase();
             const status = card.querySelector('.status-badge').classList.contains(`status-${activeFilter}`);
             
             const matchesSearch = title.includes(searchTerm) || description.includes(searchTerm);
             const matchesFilter = activeFilter === 'all' || status;
             
             if (matchesSearch && matchesFilter) {
-                card.style.display = 'block';
+                card.style.display = 'flex';
             } else {
                 card.style.display = 'none';
             }
@@ -604,8 +447,6 @@ function openEventModal(eventId) {
     
     const modal = document.getElementById('eventModal');
     const modalBody = document.getElementById('modalBody');
-    const modalEditBtn = document.getElementById('modalEditBtn');
-    const modalDeleteBtn = document.getElementById('modalDeleteBtn');
             
     // Show loading state
     modalBody.innerHTML = `
@@ -636,24 +477,10 @@ function openEventModal(eventId) {
             // The response is already the modal content
             modalBody.innerHTML = html;
             
-            // Show action buttons only for staff users
+            // Staff event management has its own template; only member RSVP is here.
             const isAuthenticated = document.body.dataset.userAuthenticated === 'true';
             const isStaff = document.body.dataset.userIsStaff === 'true';
-            
-            if (modalEditBtn && modalDeleteBtn && isAuthenticated && isStaff) {
-                modalEditBtn.style.display = 'inline-block';
-                modalDeleteBtn.style.display = 'inline-block';
-                
-                modalEditBtn.onclick = () => {
-                    window.location.href = `/events/${eventId}/update/`;
-                };
-                
-                modalDeleteBtn.onclick = () => {
-                    const eventTitle = document.querySelector('#eventModal .modal-title').textContent;
-                    deleteEvent(eventId, eventTitle);
-                };
-            }
-            
+
             // Setup RSVP form handler for regular users
             if (isAuthenticated && !isStaff) {
                 const rsvpForm = modalBody.querySelector('.rsvp-form');

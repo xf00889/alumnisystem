@@ -11,6 +11,7 @@ urlpatterns = [
     path('<int:pk>/delete/', views.AnnouncementDeleteView.as_view(), name='announcement-delete'),
     path('search/', views.announcement_search, name='announcement-search'),
     path('api/<int:pk>/', views.announcement_detail_api, name='announcement-detail-api'),
+    path('administration/preview/<int:pk>/', views.admin_announcement_preview, name='admin-announcement-preview'),
     path('public/', views.PublicAnnouncementListView.as_view(), name='public-announcement-list'),
     path('public/<int:pk>/', views.PublicAnnouncementDetailView.as_view(), name='public-announcement-detail'),
     path('public/new/', views.PublicAnnouncementCreateView.as_view(), name='create-public-announcement'),
