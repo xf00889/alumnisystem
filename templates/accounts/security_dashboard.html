@@ -15,9 +15,9 @@
 {% endblock %}
 
 {% block content %}
-{% if use_alumni_layout %}{% include 'alumni/components/breadcrumbs.html' with area='Security Dashboard' %}{% endif %}
 <div class="security-dashboard">
     <div class="container">
+        {% if use_alumni_layout %}{% include 'alumni/components/breadcrumbs.html' with area='Security Dashboard' within_page_shell=True %}{% endif %}
         <!-- Dashboard Header (Matching Other Pages) -->
         <div class="dashboard-header">
             <h2><i class="fas fa-shield-alt"></i>Security Dashboard</h2>
@@ -84,7 +84,11 @@
                                         {% if email_mfa_enabled %}Turn off email verification{% else %}Enable email verification{% endif %}
                                     </button>
                                 </form>
-                                {% else %}<p class="small">Verify your registered email before enabling this method.</p>{% endif %}
+                                {% elif not email_mfa_rollout_enabled %}
+                                <p class="small">Email sign-in verification is not currently available. An administrator must enable this option after confirming email delivery.</p>
+                                {% else %}
+                                <p class="small">Verify your registered email before enabling this method.</p>
+                                {% endif %}
                             </div>
                             <span class="security-status {% if email_mfa_enabled %}status-secure{% else %}status-warning{% endif %}">{% if email_mfa_enabled %}Enabled{% else %}Off{% endif %}</span>
                         </div>
