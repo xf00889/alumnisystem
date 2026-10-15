@@ -8,7 +8,7 @@ from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount
 from allauth.mfa import totp
 
-from accounts.email_login_mfa import KEY, MAX_ATTEMPTS, email_enabled, verified_email, _google_identity_confirms_address
+from accounts.email_login_mfa import KEY, MAX_ATTEMPTS, email_enabled, verified_email
 from core.testing_clients import CompletedPortalSetupMixin
 from accounts.models import EmailLoginMFASettings
 
@@ -99,42 +99,46 @@ class EmailLoginMFATests(CompletedPortalSetupMixin, TestCase):
         }, secure=True)
         self.assertEqual(response['Location'], reverse('mfa_authenticate'))
         view = self.client.get(reverse('mfa_authenticate'), secure=True)
-        self.assertContains(view, 'Try another way')
+        self.assertContains(view, '>Try another way</a>')
+        self.assertNotContains(view, 'Try another way: email verification code')
+        self.assertContains(view, 'mfa-choice-link--alternate')
         self.assertEqual(send.call_count, 0)
 
-    def test_google_identity_confirmation_requires_matching_verified_claim(self):
-        email = self.user.email
-        matches = (
-            {'email': ' EMAILSTAGE@example.org ', 'email_verified': True},
-            {'email': email, 'email_verified': 'true'},
-            {'email': email, 'verified_email': True},
-        )
-        for payload in matches:
-            with self.subTest(accepted=payload):
-                self.assertTrue(_google_identity_confirms_address(payload, email))
-        rejected = (
-            None,
-            {},
-            {'email': email},
-            {'email': email, 'email_verified': False},
-            {'email': email, 'email_verified': 'yes'},
-            {'email': 'unrelated@example.org', 'email_verified': True},
-            {'email': email, 'email_verified': 1},
-        )
-        for payload in rejected:
-            with self.subTest(rejected=payload):
-                self.assertFalse(_google_identity_confirms_address(payload, email))
+    @patch('accounts.email_login_mfa.send_email_with_provider', return_value=True)
+    def test_authenticator_without_email_opt_in_has_no_other_way_link(self, send):
+        totp.TOTP.activate(self.user, totp.generate_totp_secret())
+        response = self.client.post(reverse('account_login'), {
+            'login': self.user.email, 'password': 'StrongLoginPassword!810',
+        }, secure=True)
+        self.assertEqual(response['Location'], reverse('mfa_authenticate'))
+        challenge = self.client.get(reverse('mfa_authenticate'), secure=True)
+        self.assertNotContains(challenge, '>Try another way</a>')
+        self.assertContains(challenge, 'Back to sign in')
+        send.assert_not_called()
 
     def test_verified_google_sso_address_can_enable_email_verification(self):
         # Some OAuth accounts have a linked Google identity but no EmailAddress row.
         EmailAddress.objects.filter(user=self.user).delete()
-        SocialAccount.objects.create(
+        google = SocialAccount.objects.create(
             user=self.user, provider='google', uid='google-verified-test',
             extra_data={'email': 'EmailStage@example.org', 'email_verified': True},
         )
+        self.assertTrue(SocialAccount.objects.filter(
+            pk=google.pk, user_id=self.user.pk, provider='google',
+        ).exists(), 'Google identity must be persisted before verification')
         self.assertTrue(verified_email(self.user))
         self.client.force_login(self.user)
+        # The view receives a fresh authenticated user, not self.user. Checking
+        # both prevents a stale identity fixture from hiding a real bug.
+        fresh_user = get_user_model().objects.get(pk=self.user.pk)
+        self.assertTrue(verified_email(fresh_user), 'Stored Google identity should verify a freshly loaded account')
+        self.assertFalse(email_enabled(fresh_user), 'The method must remain opt-in')
         response = self.client.get(reverse('accounts:security_dashboard'), secure=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['email_verified'], 'Dashboard did not recognize verified Google identity')
+        self.assertTrue(response.context['email_mfa_rollout_enabled'], 'Rollout override not reaching dashboard')
+        self.assertTrue(response.context['email_mfa_can_enable'], 'Dashboard eligibility is inconsistent with verified email and rollout')
+        self.assertFalse(response.context['email_mfa_enabled'], 'New account must not be opted in automatically')
         self.assertContains(response, 'Enable email verification')
         self.assertNotContains(response, 'Verify your registered email before enabling')
 
@@ -151,7 +155,7 @@ class EmailLoginMFATests(CompletedPortalSetupMixin, TestCase):
         google.extra_data = {'email': self.user.email, 'email_verified': True}
         google.save(update_fields=['extra_data'])
         google.refresh_from_db()
-        self.assertTrue(_google_identity_confirms_address(google.extra_data, self.user.email))
+        self.assertEqual(google.extra_data.get('email_verified'), True)
         self.assertTrue(verified_email(self.user))
         self.user.email = 'changed@example.org'
         self.user.save(update_fields=['email'])

@@ -1235,13 +1235,16 @@ class SecurityDashboardView(TemplateView):
         context['user'] = self.request.user
         from allauth.mfa.utils import is_mfa_enabled
         context['two_factor_enabled'] = is_mfa_enabled(self.request.user)
-        from allauth.account.models import EmailAddress
-        context['email_verified'] = EmailAddress.objects.filter(
-            user=self.request.user, email__iexact=self.request.user.email, verified=True,
-        ).exists()
-        from accounts.email_login_mfa import email_enabled
-        context['email_mfa_enabled'] = email_enabled(self.request.user)
-        context['email_mfa_can_enable'] = (
-            context['email_verified'] and getattr(settings, 'EMAIL_LOGIN_MFA_ROLLOUT', False)
+        from accounts.email_login_mfa import email_enabled, verified_email
+        # Keep the dashboard eligibility decision explicit and based on the
+        # authenticated user. Google accounts may have a verified Google email
+        # without a separate allauth EmailAddress record.
+        context['email_verified'] = bool(verified_email(self.request.user))
+        context['email_mfa_rollout_enabled'] = bool(
+            getattr(settings, 'EMAIL_LOGIN_MFA_ROLLOUT', False)
+        )
+        context['email_mfa_enabled'] = bool(email_enabled(self.request.user))
+        context['email_mfa_can_enable'] = bool(
+            context['email_mfa_rollout_enabled'] and context['email_verified']
         )
         return context
