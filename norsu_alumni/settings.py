@@ -664,6 +664,10 @@ else:
         }
     }
 
+# Shared *public* CMS/SEO context; use a short TTL to limit admin-edit staleness.
+# Personal messages, profile data, sessions and authenticated HTML are not cached.
+GLOBAL_TEMPLATE_CACHE_SECONDS = config('GLOBAL_TEMPLATE_CACHE_SECONDS', default=60, cast=int)
+
 # Documentation cache settings
 DOCS_CACHE_TIMEOUT = 3600  # 1 hour for rendered markdown
 DOCS_TOC_CACHE_TIMEOUT = 3600  # 1 hour for table of contents

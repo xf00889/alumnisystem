@@ -19,7 +19,15 @@ class StaticPageSitemap(Sitemap):
         """
         Returns all active PageSEO objects.
         """
-        return PageSEO.objects.filter(is_active=True).exclude(page_path__in=['/jobs/', '/jobs/careers/'])
+        pages = PageSEO.objects.filter(is_active=True).exclude(page_path__in=['/jobs/'])
+        # Keep internal/member-only routes out of the public XML sitemap.
+        private_prefixes = (
+            '/accounts/', '/admin/', '/admin-dashboard/', '/alumni/',
+            '/connections/', '/mentorship/', '/location-tracking/', '/setup/',
+        )
+        for prefix in private_prefixes:
+            pages = pages.exclude(page_path__startswith=prefix)
+        return pages
     
     def location(self, obj):
         """

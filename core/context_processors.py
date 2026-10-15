@@ -1,6 +1,28 @@
 """
-Context processors for adding global template variables
+Context processors for adding global template variables.
+
+Shared, non-user-specific CMS configuration is cached briefly; private or
+per-user content is never put in these shared caches.
 """
+
+import hashlib
+
+from django.conf import settings
+from django.core.cache import cache
+
+
+def _shared_template_cache_seconds():
+    return max(0, getattr(settings, "GLOBAL_TEMPLATE_CACHE_SECONDS", 60))
+
+
+def _cached_public_data(key, factory):
+    """Only use for public, non-personal data; a zero TTL disables caching."""
+    ttl = _shared_template_cache_seconds()
+    if not ttl:
+        return factory()
+    # Wrap the result so a legitimate None (missing SEO/CMS record) is cached too.
+    return cache.get_or_set(key, lambda: {"value": factory()}, timeout=ttl)["value"]
+
 
 
 TRACER_STUDY_PAGE_NAMES = frozenset({
@@ -83,7 +105,10 @@ def tracer_study_banner_context(request):
     try:
         from surveys.tracer_study import public_tracer_banner_queryset
 
-        public_count = public_tracer_banner_queryset().count()
+        public_count = _cached_public_data(
+            'global-template:public-tracer-count:v1',
+            lambda: public_tracer_banner_queryset().count(),
+        )
         context.update({
             'show_public_tracer_study_badge': public_count > 0,
             'public_tracer_study_count': public_count,
@@ -169,81 +194,100 @@ def sso_context(request):
 
 
 def cms_contact_info(request):
-    """
-    Add CMS contact information to template context
-    """
+    """Public contact details; avoid a repeated DB query on every render."""
     try:
         from cms.models import ContactInfo
-        contact_info = ContactInfo.objects.filter(is_active=True).order_by('contact_type', 'order')
-        return {
-            'cms_contact_info': contact_info,
-        }
+        contacts = _cached_public_data(
+            'global-template:contact-info:v1',
+            lambda: list(ContactInfo.objects.filter(is_active=True).order_by('contact_type', 'order')),
+        )
+        return {'cms_contact_info': contacts}
     except Exception:
-        return {
-            'cms_contact_info': [],
-        }
+        return {'cms_contact_info': []}
+
+
+_PRIVATE_INDEX_PREFIXES = (
+    '/accounts/', '/admin/', '/admin-dashboard/', '/alumni/',
+    '/connections/', '/mentorship/', '/location-tracking/', '/setup/',
+)
+
+
+def _is_nonindexable_request(request):
+    """Public crawlers should not index authenticated/member or security URLs."""
+    user = getattr(request, 'user', None)
+    return bool(user and user.is_authenticated) or request.path.startswith(_PRIVATE_INDEX_PREFIXES)
+
 
 
 def seo_context(request):
-    """
-    Add SEO information to template context
-    """
+    """Public SEO configuration is shared, while member routes are noindex."""
+    path = request.path
+    noindex = _is_nonindexable_request(request)
+    default_title = 'NORSU Alumni Network'
+    default_description = (
+        'Connect with NORSU alumni, access exclusive opportunities, '
+        'and stay engaged with the university community.'
+    )
+    seo_data = {
+        'title': default_title,
+        'description': default_description,
+        'keywords': 'NORSU, alumni, network, university, graduates',
+        'canonical_url': request.build_absolute_uri(path),
+        'og_image': '',
+        'twitter_image': '',
+        'og_type': 'website',
+        'site_name': default_title,
+        'noindex': noindex,
+    }
+    if noindex:
+        return {'page_seo': None, 'seo': seo_data}
+
     try:
         from core.models.seo import PageSEO, OrganizationSchema
-        
-        # Get SEO data for current page if available
-        path = request.path
-        page_seo = PageSEO.objects.filter(page_path=path, is_active=True).first()
-        
-        # Get organization schema for default values
-        org_schema = OrganizationSchema.objects.filter(is_active=True).first()
-        
-        # Default values
-        default_title = 'NORSU Alumni Network'
-        default_description = 'Connect with NORSU alumni, access exclusive opportunities, and stay engaged with the university community.'
-        default_keywords = 'NORSU, alumni, network, university, graduates'
-        
-        # Build SEO object with proper fallbacks
-        seo_data = {
+
+        # The key is bounded even when a request has an unusually long path.
+        path_key = hashlib.sha256(path.encode('utf-8')).hexdigest()
+        page_seo = _cached_public_data(
+            f'global-template:page-seo:{path_key}:v1',
+            lambda: PageSEO.objects.filter(page_path=path, is_active=True).first(),
+        )
+        org_schema = _cached_public_data(
+            'global-template:organization-schema:v1',
+            lambda: OrganizationSchema.objects.filter(is_active=True).first(),
+        )
+        seo_data.update({
             'title': page_seo.meta_title if page_seo else default_title,
             'description': page_seo.meta_description if page_seo else default_description,
-            'keywords': page_seo.meta_keywords if page_seo else default_keywords,
-            'canonical_url': page_seo.canonical_url if (page_seo and page_seo.canonical_url) else request.build_absolute_uri(path),
+            'keywords': page_seo.meta_keywords if page_seo else seo_data['keywords'],
+            'canonical_url': (
+                page_seo.canonical_url if (page_seo and page_seo.canonical_url)
+                else request.build_absolute_uri(path)
+            ),
             'og_image': page_seo.og_image.url if (page_seo and page_seo.og_image) else (org_schema.logo if org_schema else ''),
             'twitter_image': page_seo.twitter_image.url if (page_seo and page_seo.twitter_image) else '',
-            'og_type': 'website',  # Default to website
             'site_name': org_schema.name if org_schema else default_title,
-        }
-        
-        return {
-            'page_seo': page_seo,
-            'seo': seo_data,
-        }
-    except Exception as e:
-        # Return default SEO data if there's an error
-        return {
-            'page_seo': None,
-            'seo': {
-                'title': 'NORSU Alumni Network',
-                'description': 'Connect with NORSU alumni, access exclusive opportunities, and stay engaged with the university community.',
-                'keywords': 'NORSU, alumni, network, university, graduates',
-                'canonical_url': request.build_absolute_uri(request.path),
-                'og_image': '',
-                'twitter_image': '',
-                'og_type': 'website',
-                'site_name': 'NORSU Alumni Network',
-            },
-        }
+        })
+        return {'page_seo': page_seo, 'seo': seo_data}
+    except Exception:
+        # Keep the public page renderable when SEO configuration is unavailable.
+        return {'page_seo': None, 'seo': seo_data}
+
 
 
 def footer_links(request):
-    """
-    Add footer links to template context
-    """
+    """Shared public footer CMS data, including the current legal pages."""
     try:
         from cms.models import FooterLink, LegalPage
-        links = FooterLink.objects.filter(is_active=True).order_by('order')
-        legal_pages = list(LegalPage.objects.filter(is_published=True))
+
+        def load_footer_data():
+            return (
+                list(FooterLink.objects.filter(is_active=True).order_by('order')),
+                list(LegalPage.objects.filter(is_published=True)),
+            )
+
+        links, legal_pages = _cached_public_data(
+            'global-template:footer-links-and-legal:v1', load_footer_data,
+        )
         return {
             'footer_links': links,
             'legal_pages': legal_pages,

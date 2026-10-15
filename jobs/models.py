@@ -119,6 +119,7 @@ class JobPosting(models.Model):
             models.Index(fields=['is_featured']),
             models.Index(fields=['source_type']),
             models.Index(fields=['source']),  # Add index for source
+            models.Index(fields=['is_active', '-posted_date'], name='jobs_active_date_idx'),
         ]
 
     def save(self, *args, **kwargs):

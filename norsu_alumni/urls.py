@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import HttpResponseRedirect, Http404
 from django.contrib.sitemaps.views import sitemap
+from django.views.decorators.cache import cache_page
 from django.views.generic.base import RedirectView
 from accounts import security_views
 from accounts import alumni_password_views
@@ -31,7 +32,7 @@ urlpatterns = [
     # Setup URLs - must be before other URLs to catch setup redirects
     path('setup/', include('setup.urls')),
     # Sitemap
-    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
+    path('sitemap.xml', cache_page(300)(sitemap), {'sitemaps': sitemaps}, name='sitemap'),
     # Robots.txt
     path('robots.txt', views.robots_txt, name='robots_txt'),
     # Favicon (root path for browser/search crawler discovery)

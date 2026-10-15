@@ -34,6 +34,9 @@ class Event(models.Model):
 
     class Meta:
         ordering = ['-start_date']
+        indexes = [
+            models.Index(fields=['status', 'start_date'], name='events_status_start_idx'),
+        ]
 
     def __str__(self):
         return self.title
