@@ -81,12 +81,16 @@ body.alumni-portal .alumni-main .alumni-featured-jobs .featured-job-applied{
 
 /* Alumni job application: compact spacing that inherits the authenticated
    page shell rather than stacking legacy dashboard/container paddings. */
-body.alumni-portal .alumni-main .alumni-job-application{
-    background:transparent;min-height:0;margin:0;padding:0 0 1rem;
+/* The breadcrumb is a sibling alumni-shell. Match that same centered width and
+   override the shared page-foundation .application-wrapper padding. Previously
+   margin:0 pushed the constrained page to the left on wide displays. */
+body.alumni-portal .alumni-main > .application-wrapper.alumni-job-application{
+    width:min(calc(100% - 3rem),1280px);max-width:1280px;
+    background:transparent;min-height:0;margin:0 auto;padding:0 0 1rem;
     color:var(--alumni-ink);font-family:inherit;
 }
-body.alumni-portal .alumni-main .alumni-job-application .job-application-container{
-    max-width:1280px;min-width:0;padding:0;
+body.alumni-portal .alumni-main .alumni-job-application .job-application-container.alumni-shell{
+    width:100%;max-width:none;min-width:0;margin:0;padding:0;
 }
 body.alumni-portal .alumni-main .alumni-job-application .dashboard-header.job-application-hero{
     display:flex;align-items:center;gap:1rem;
@@ -197,7 +201,18 @@ body.alumni-portal .alumni-main .alumni-job-application .job-application-error-s
     border-left:3px solid #a9413a;background:#fff2f0;color:#7c2925;
     font-size:.8rem;padding:.65rem .8rem;margin:0 0 1rem;
 }
-body.alumni-portal .alumni-main .alumni-job-application .job-application-captcha{margin:.35rem 0 .95rem;}
+/* reCAPTCHA v3 may be enabled; retain its field and errors but remove the
+   redundant visible heading/label and empty bordered section from the page. */
+body.alumni-portal .alumni-main .alumni-job-application .job-application-captcha{
+    margin:0 0 .45rem;padding:0;border:0;min-width:0;
+}
+body.alumni-portal .alumni-main .alumni-job-application .job-application-captcha :is(label,.form-label){
+    position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+    overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+body.alumni-portal .alumni-main .alumni-job-application .job-application-captcha .mb-3{
+    margin:0!important;
+}
 body.alumni-portal .alumni-main .alumni-job-application .form-actions{
     position:static;display:flex;align-items:center;justify-content:flex-end;
     flex-wrap:wrap;gap:.6rem;background:transparent;padding:1rem 0 0;
@@ -222,8 +237,15 @@ body.alumni-portal .alumni-main .alumni-job-application .form-actions .btn i{fon
 @media(max-width:991.98px){
     body.alumni-portal .alumni-main .alumni-job-application .job-application-grid{--bs-gutter-y:.5rem;}
 }
+@media(min-width:768px) and (max-width:991.98px){
+    body.alumni-portal .alumni-main > .application-wrapper.alumni-job-application{
+        width:min(calc(100% - 1.5rem),1280px);
+    }
+}
 @media(max-width:767.98px){
-    body.alumni-portal .alumni-main .alumni-job-application{margin:0;padding:0 0 .4rem;}
+    body.alumni-portal .alumni-main > .application-wrapper.alumni-job-application{
+        width:min(calc(100% - 2.3rem),1280px);margin:0 auto;padding:0 0 .4rem;
+    }
     body.alumni-portal .alumni-main .alumni-job-application .dashboard-header.job-application-hero{
         min-height:0;padding:1rem 1.1rem !important;gap:.7rem;
         margin-bottom:.7rem !important;border-radius:13px !important;text-align:left !important;
@@ -240,6 +262,31 @@ body.alumni-portal .alumni-main .alumni-job-application .form-actions .btn i{fon
     body.alumni-portal .alumni-main .alumni-job-application .job-summary-item{font-size:.74rem;}
     body.alumni-portal .alumni-main .alumni-job-application .form-section{margin-bottom:.8rem;padding-bottom:.7rem;}
     body.alumni-portal .alumni-main .alumni-job-application :is(.form-control,.form-select){font-size:16px;}
-    body.alumni-portal .alumni-main .alumni-job-application .form-actions{padding-top:.8rem;}
-    body.alumni-portal .alumni-main .alumni-job-application .form-actions .btn{flex:1 1 140px;}
+    /* Legacy jobs-app.css stacks buttons and sets each button to width:100%.
+       Replace that with a compact, equal-height action row on mobile. */
+    body.alumni-portal .alumni-main .alumni-job-application .form-actions{
+        flex-direction:row;flex-wrap:nowrap;align-items:stretch;
+        justify-content:flex-end;gap:.5rem;padding:.8rem 0 0;margin:0;
+    }
+    body.alumni-portal .alumni-main .alumni-job-application .form-actions .btn{
+        display:inline-flex;align-items:center;justify-content:center;
+        flex:0 0 auto;width:auto;height:auto;min-height:44px;max-height:none;
+        padding:.6rem .75rem;line-height:1.35;margin:0;
+        white-space:nowrap;overflow-wrap:normal;
+    }
+    body.alumni-portal .alumni-main .alumni-job-application .form-actions .btn-primary{
+        flex:1 1 auto;min-width:0;
+    }
+    body.alumni-portal .alumni-main .alumni-job-application .job-application-grid{
+        --bs-gutter-x:0;--bs-gutter-y:.35rem;
+    }
+}
+@media(max-width:340px){
+    /* Keep both actions touch-sized on unusually narrow screens. */
+    body.alumni-portal .alumni-main .alumni-job-application .form-actions{
+        flex-direction:column-reverse;
+    }
+    body.alumni-portal .alumni-main .alumni-job-application .form-actions .btn{
+        flex:none;width:100%;
+    }
 }
