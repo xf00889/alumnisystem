@@ -14,7 +14,11 @@ class MobileCommunityRefinementTests(unittest.TestCase):
 
     def test_mobile_brand_uses_existing_logo_asset(self):
         html = read('templates/alumni/components/navigation.html')
+        # Navigation is shared by regular alumni pages, including the dashboard.
+        # The institutional university seal must not replace the alumni brand.
+        self.assertIn('alumni-nav-brand--mobile', html)
         self.assertIn("{% static 'images/alumni_logo.webp' %}", html)
+        self.assertNotIn("{% static 'images/logo_norsu.webp' %}", html)
         self.assertTrue((ROOT / 'static/images/alumni_logo.webp').exists())
         self.assertIn('alumni-brand-text', html)
 
