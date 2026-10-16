@@ -14,11 +14,16 @@ class PWAFundamentalsTests(SimpleTestCase):
         self.assertTrue(response['Content-Type'].startswith('application/manifest+json'))
         manifest = json.loads(response.content)
         self.assertEqual(manifest['scope'], '/')
-        self.assertEqual(manifest['start_url'], '/')
+        self.assertEqual(manifest['start_url'], '/app/')
         self.assertEqual(manifest['display'], 'standalone')
         for icon in manifest['icons']:
             self.assertTrue(icon['src'].startswith('/static/pwa/icons/'))
             self.assertTrue((Path(settings.BASE_DIR) / icon['src'].lstrip('/')).exists())
+
+    def test_install_launch_redirects_to_login_without_changing_public_home(self):
+        result = self.client.get(reverse('pwa_launch'))
+        self.assertRedirects(result, reverse('account_login'), fetch_redirect_response=False)
+        self.assertIn('no-store', result['Cache-Control'])
 
     def test_worker_is_root_scoped_and_not_http_cached(self):
         response = self.client.get(reverse('pwa_service_worker'))

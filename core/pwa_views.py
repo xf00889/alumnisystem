@@ -2,8 +2,23 @@
 from pathlib import Path
 
 from django.conf import settings
+from django.shortcuts import redirect
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_GET
+from django.views.decorators.cache import never_cache
+
+
+@never_cache
+@require_GET
+def app_launch(request):
+    """The PWA launch URL, deliberately separate from the public home page.
+
+    Anonymous installations open the existing login page; authenticated users
+    follow the existing role and registration-aware home routing.
+    """
+    if request.user.is_authenticated:
+        return redirect('core:home')
+    return redirect('account_login')
 
 
 @require_GET
@@ -21,15 +36,15 @@ def manifest(request):
         "short_name": "NORSU Alumni",
         "description": "Connect with the Negros Oriental State University alumni community.",
         "lang": "en",
-        "start_url": "/",
+        "start_url": "/app/",
         "scope": "/",
         "display": "standalone",
         "background_color": "#f7f5f0",
         "theme_color": "#182744",
         "icons": icons,
         "shortcuts": [
-            {"name": "Alumni Directory", "short_name": "Directory", "url": "/alumni/"},
-            {"name": "Job Board", "short_name": "Jobs", "url": "/jobs/"},
+            {"name": "Alumni Directory", "short_name": "Directory", "url": "/alumni/", "icons": [{"src": "/static/pwa/icons/icon-96.png", "sizes": "96x96", "type": "image/png"}]},
+            {"name": "Job Board", "short_name": "Jobs", "url": "/jobs/", "icons": [{"src": "/static/pwa/icons/icon-96.png", "sizes": "96x96", "type": "image/png"}]},
         ],
     }, content_type="application/manifest+json")
     response["Cache-Control"] = "public, max-age=300"

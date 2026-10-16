@@ -13,6 +13,7 @@ from accounts import google_views
 from core.sitemaps import StaticPageSitemap, EventSitemap
 from core import views
 from core import pwa_views
+from core import web_push_views
 import os
 
 # Sitemap configuration
@@ -27,6 +28,10 @@ def profile_search_connected_users(request):
     return search_connected_users_api(request)
 
 urlpatterns = [
+    path("app/", pwa_views.app_launch, name="pwa_launch"),
+    path("api/pwa/push/config/", web_push_views.config, name="pwa_push_config"),
+    path("api/pwa/push/subscribe/", web_push_views.subscribe, name="pwa_push_subscribe"),
+    path("api/pwa/push/unsubscribe/", web_push_views.unsubscribe, name="pwa_push_unsubscribe"),
     path("manifest.webmanifest", pwa_views.manifest, name="pwa_manifest"),
     path("sw.js", pwa_views.service_worker, name="pwa_service_worker"),
     # Log viewer - must be before admin to avoid catch-all pattern

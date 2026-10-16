@@ -39,6 +39,42 @@ self.addEventListener('message', (event) => {
   }
 });
 
+// Push payloads carry only generic notices. Never show message or profile content.
+self.addEventListener('push', (event) => {
+  event.waitUntil((async () => {
+    let data = {};
+    try { data = event.data ? event.data.json() : {}; } catch (_) { data = {}; }
+    const target = typeof data.url === 'string' && data.url.startsWith('/') &&
+      !data.url.startsWith('//') && !data.url.includes('\\') ? data.url : '/app/';
+    const title = typeof data.title === 'string' ? data.title.slice(0, 80) : 'NORSU Alumni update';
+    await self.registration.showNotification(title, {
+      body: 'Open NORSU Alumni to view your update.',
+      icon: '/static/pwa/icons/icon-192.png',
+      badge: '/static/pwa/icons/icon-192.png',
+      tag: 'norsu-' + String(data.id || 'general').slice(0, 40),
+      renotify: false,
+      data: {url: target}
+    });
+  })());
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    const target = new URL(event.notification.data?.url || '/app/', self.location.origin);
+    if (target.origin !== self.location.origin) return;
+    const clients = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
+    for (const client of clients) {
+      if (new URL(client.url).origin === self.location.origin) {
+        await client.focus();
+        await client.navigate(target.href);
+        return;
+      }
+    }
+    await self.clients.openWindow(target.href);
+  })());
+});
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;

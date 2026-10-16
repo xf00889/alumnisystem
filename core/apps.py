@@ -19,6 +19,7 @@ class CoreConfig(AppConfig):
         # Import signals to register them
         try:
             import core.signals
+            import core.web_push_logout
         except Exception as e:
             logger.warning(f"Could not import core signals: {str(e)}")
         

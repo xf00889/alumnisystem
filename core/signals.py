@@ -9,6 +9,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+@receiver(post_save, sender='announcements.Announcement')
+def schedule_web_push_for_published_announcement(sender, instance, created, **kwargs):
+    if not created or not instance.is_active:
+        return
+    from django.db import transaction
+    from core.web_push import queue_published_announcement
+    transaction.on_commit(lambda: queue_published_announcement(instance.pk), robust=True)
+
+
+@receiver(post_save, sender='core.Notification')
+def schedule_browser_push_for_new_notification(sender, instance, created, **kwargs):
+    if not created:
+        return
+    from django.db import transaction
+    from core.web_push import queue_web_push
+    # Transaction commits before queuing so no rolled-back alert can be pushed.
+    transaction.on_commit(lambda: queue_web_push(instance.pk), robust=True)
+
+
+
 @receiver(post_save, sender='core.SSOConfig')
 def sync_sso_to_socialapp(sender, instance, created, **kwargs):
     """
