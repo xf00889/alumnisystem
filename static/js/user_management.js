@@ -23,73 +23,91 @@ function getCookie(name) {
 
 const csrftoken = getCookie('csrftoken');
 
-// Toggle user status (enable/disable)
-function toggleUserStatus(userId, action) {
-    // Show confirmation dialog
-    const actionText = action === 'disable' ? 'disable' : 'enable';
-    const confirmMessage = `Are you sure you want to ${actionText} this user?`;
-    
-    if (!confirm(confirmMessage)) {
+// Single and bulk status updates use the same accessible confirmation modal.
+const statusDialog = { action: null, userIds: [], button: null };
+function userManagementError(message) {
+    if (window.ToastUtils && typeof ToastUtils.showError === 'function') {
+        ToastUtils.showError(message);
+    } else {
+        const area = document.getElementById('statusChangeError');
+        if (area) { area.textContent = message; area.hidden = false; }
+        console.error('User Management:', message);
+    }
+}
+function userManagementSuccess(message) {
+    if (window.ToastUtils && typeof ToastUtils.showSuccess === 'function') ToastUtils.showSuccess(message);
+}
+function toggleUserStatus(userId, action, button) {
+    openStatusDialog(action, [String(userId)], button || document.querySelector(`.toggle-status-btn[data-user-id="${userId}"]`));
+}
+function openStatusDialog(action, userIds, button) {
+    if (!['enable', 'disable'].includes(action) || !userIds.length) return;
+    const element = document.getElementById('userStatusConfirmModal');
+    if (!element || !window.bootstrap || !bootstrap.Modal) {
+        userManagementError('The confirmation dialog is not available. Please reload this page.');
         return;
     }
-
-    // Get reason for status change
-    let reason = '';
-    if (action === 'disable') {
-        reason = prompt('Please provide a reason for disabling this user:');
-        if (reason === null) {
-            return; // User cancelled
-        }
+    statusDialog.action = action;
+    statusDialog.userIds = userIds;
+    statusDialog.button = button || null;
+    const title = element.querySelector('#statusChangeTitle');
+    const description = element.querySelector('#statusChangeDescription');
+    const submit = element.querySelector('#confirmUserStatusButton');
+    const input = element.querySelector('#statusChangeReason');
+    const error = element.querySelector('#statusChangeError');
+    title.textContent = `${action === 'disable' ? 'Disable' : 'Enable'} ${userIds.length === 1 ? 'user' : `${userIds.length} users`}`;
+    description.textContent = action === 'disable'
+        ? 'The selected account(s) will no longer be able to sign in. Existing sessions will be invalidated where possible.'
+        : 'The selected account(s) will regain sign-in access.';
+    submit.textContent = action === 'disable' ? 'Disable user' + (userIds.length > 1 ? 's' : '') : 'Enable user' + (userIds.length > 1 ? 's' : '');
+    submit.classList.toggle('btn-danger', action === 'disable');
+    submit.classList.toggle('btn-primary', action !== 'disable');
+    submit.disabled = false;
+    input.value = '';
+    error.hidden = true;
+    error.textContent = '';
+    const modal = bootstrap.Modal.getOrCreateInstance(element);
+    modal.show();
+}
+async function confirmStatusChange() {
+    const element = document.getElementById('userStatusConfirmModal');
+    const reason = element.querySelector('#statusChangeReason').value.trim();
+    const error = element.querySelector('#statusChangeError');
+    const button = element.querySelector('#confirmUserStatusButton');
+    if (!reason || reason.length > 1000) {
+        error.textContent = 'Please provide a reason (1–1000 characters).';
+        error.hidden = false;
+        element.querySelector('#statusChangeReason').focus();
+        return;
     }
-
-    // Show loading indicator
-    const button = document.querySelector(`button[data-user-id="${userId}"][data-action="${action}"]`);
-    if (button) {
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+    button.textContent = 'Processing…';
+    const isBulk = statusDialog.userIds.length !== 1 || !statusDialog.button;
+    const token = getCookie('csrftoken');
+    const headers = {'X-CSRFToken': token, 'X-Requested-With': 'XMLHttpRequest'};
+    let endpoint, body;
+    if (isBulk) {
+        endpoint = element.dataset.bulkUrl;
+        headers['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
+        body = new URLSearchParams({ action: statusDialog.action, user_ids: JSON.stringify(statusDialog.userIds), reason });
+    } else {
+        endpoint = statusDialog.button.dataset.url;
+        headers['Content-Type'] = 'application/json';
+        body = JSON.stringify({ action: statusDialog.action, reason });
     }
-
-    // Make AJAX request
-    fetch(`/admin-dashboard/users/${userId}/toggle/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrftoken
-        },
-        body: JSON.stringify({
-            action: action,
-            reason: reason,
-            campuses: campuses
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            ToastUtils.showSuccess(data.message);
-            // Reload page after a short delay
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-        } else {
-            ToastUtils.showError(data.message || 'An error occurred');
-            if (button) {
-                button.disabled = false;
-                button.innerHTML = action === 'disable' 
-                    ? '<i class="fas fa-ban"></i>' 
-                    : '<i class="fas fa-check-circle"></i>';
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        ToastUtils.showError('An error occurred while updating user status');
-        if (button) {
-            button.disabled = false;
-            button.innerHTML = action === 'disable' 
-                ? '<i class="fas fa-ban"></i>' 
-                : '<i class="fas fa-check-circle"></i>';
-        }
-    });
+    try {
+        const response = await fetch(endpoint, {method: 'POST', headers, body, credentials: 'same-origin'});
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || `Request failed (${response.status})`);
+        bootstrap.Modal.getOrCreateInstance(element).hide();
+        userManagementSuccess(data.message || 'Account status updated.');
+        window.location.reload();
+    } catch (exc) {
+        error.textContent = exc.message || 'Unable to change account status.';
+        error.hidden = false;
+        button.disabled = false;
+        button.textContent = statusDialog.action === 'disable' ? 'Disable account' : 'Enable account';
+    }
 }
 
 // Manage user roles (assign/remove)
@@ -111,7 +129,8 @@ function manageUserRole(userId, role, action, reason = '', campuses = []) {
         body: JSON.stringify({
             role: role,
             action: action,
-            reason: reason
+            reason: reason,
+            campuses: campuses
         })
     })
     .then(response => response.json())
@@ -140,97 +159,23 @@ function manageUserRole(userId, role, action, reason = '', campuses = []) {
     });
 }
 
-// Bulk actions
+// Bulk actions share the same reason-required status dialog.
 function performBulkAction(action, userIds) {
-    if (userIds.length === 0) {
-        ToastUtils.showWarning('Please select at least one user');
-        return;
-    }
-
-    // Show confirmation dialog
-    const actionText = action === 'disable' ? 'disable' : 'enable';
-    const confirmMessage = `Are you sure you want to ${actionText} ${userIds.length} user(s)?`;
-    
-    if (!confirm(confirmMessage)) {
-        return;
-    }
-
-    // Get reason for bulk action
-    let reason = '';
-    if (action === 'disable') {
-        reason = prompt('Please provide a reason for this bulk action:');
-        if (reason === null) {
-            return; // User cancelled
-        }
-    }
-
-    // Show loading indicator
-    const bulkActionsBar = document.getElementById('bulkActionsBar');
-    if (bulkActionsBar) {
-        bulkActionsBar.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>Processing...</div>';
-    }
-
-    // Make AJAX request
-    fetch('/admin-dashboard/users/bulk-action/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrftoken
-        },
-        body: JSON.stringify({
-            action: action,
-            user_ids: userIds,
-            reason: reason
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const successCount = data.results.success.length;
-            const failCount = data.results.failed.length;
-            
-            let message = `Successfully ${actionText}d ${successCount} user(s)`;
-            if (failCount > 0) {
-                message += `. ${failCount} user(s) failed.`;
-            }
-            
-            if (failCount > 0) {
-                ToastUtils.showWarning(message);
-            } else {
-                ToastUtils.showSuccess(message);
-            }
-            
-            // Reload page after a short delay
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        } else {
-            ToastUtils.showError(data.message || 'An error occurred');
-            // Restore bulk actions bar
-            if (bulkActionsBar) {
-                window.location.reload();
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        ToastUtils.showError('An error occurred while performing bulk action');
-        // Restore bulk actions bar
-        if (bulkActionsBar) {
-            window.location.reload();
-        }
-    });
+    if (!userIds.length) { userManagementError('Select at least one user.'); return; }
+    openStatusDialog(action, userIds, null);
 }
 
 // Initialize event listeners when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    const submitStatus = document.getElementById('confirmUserStatusButton');
+    if (submitStatus) submitStatus.addEventListener('click', confirmStatusChange);
     // Toggle status buttons
     const toggleStatusButtons = document.querySelectorAll('.toggle-status-btn');
     toggleStatusButtons.forEach(button => {
         button.addEventListener('click', function() {
             const userId = this.getAttribute('data-user-id');
             const action = this.getAttribute('data-action');
-            toggleUserStatus(userId, action);
+            toggleUserStatus(userId, action, this);
         });
     });
 

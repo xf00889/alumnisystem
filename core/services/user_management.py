@@ -37,7 +37,7 @@ class UserManagementService:
     
     @staticmethod
     @transaction.atomic
-    def create_user(email, first_name, last_name, password, created_by, request=None, send_email=True, account_type='standard'):
+    def create_user(email, first_name, last_name, password, created_by, request=None, send_email=True, account_type='standard', campus_codes=None):
         """
         Create a new user with profile
         
@@ -56,10 +56,18 @@ class UserManagementService:
         try:
             # The public service boundary must enforce the same limited roles
             # as the administration form; never accept permission flags from POST.
-            if account_type not in ('standard', 'hr'):
+            allowed_types = ('standard', 'alumni', 'mentor', 'hr', 'alumni_coordinator', 'admin', 'superuser')
+            if account_type not in allowed_types:
                 return (None, None, False, 'Invalid account type')
-            if account_type == 'hr' and not (created_by and created_by.is_superuser):
-                return (None, None, False, 'Only superusers can create HR accounts')
+            if not created_by or not created_by.is_superuser:
+                return (None, None, False, 'Only superusers can create user accounts and assign initial roles')
+            if account_type == 'alumni_coordinator':
+                from alumni_directory.models import Alumni
+                valid_campuses = {code for code, _label in Alumni.CAMPUS_CHOICES}
+                if (not isinstance(campus_codes, list) or not campus_codes
+                        or len(campus_codes) != len(set(campus_codes))
+                        or any(not isinstance(code, str) or code not in valid_campuses for code in campus_codes)):
+                    return (None, None, False, 'Select at least one valid NORSU campus for the coordinator')
 
             # Validate email format
             try:
@@ -95,13 +103,34 @@ class UserManagementService:
                 # Create profile if signal failed
                 profile = Profile.objects.create(user=user)
             
-            # HR is a distinct, non-staff identity. Persist its role in the
-            # same transaction as the user so no partially provisioned user
-            # is left behind if role assignment fails.
+            # Persist one initial role atomically with account creation.
+            # HR/Coordinator are restricted non-staff identities.
             if account_type == 'hr':
                 profile.is_hr = True
                 profile.is_alumni_coordinator = False
                 profile.save(update_fields=['is_hr', 'is_alumni_coordinator'])
+            elif account_type == 'alumni_coordinator':
+                from core.models.coordinator_campus import CoordinatorCampus
+                profile.is_alumni_coordinator = True
+                profile.is_hr = False
+                profile.save(update_fields=['is_alumni_coordinator', 'is_hr'])
+                CoordinatorCampus.objects.bulk_create([
+                    CoordinatorCampus(user=user, campus=code) for code in campus_codes
+                ])
+            elif account_type == 'admin':
+                user.is_staff = True
+                user.save(update_fields=['is_staff'])
+            elif account_type == 'superuser':
+                user.is_superuser = True
+                user.is_staff = True
+                user.save(update_fields=['is_superuser', 'is_staff'])
+            elif account_type == 'mentor':
+                # The new mentor needs to complete their expertise/profile
+                # and be verified before becoming available to mentees.
+                Mentor.objects.create(
+                    user=user, expertise_areas='', is_active=False,
+                    is_verified=False, accepting_mentees=False,
+                )
 
             # Log audit entry
             AuditLogService.log_action(
@@ -118,13 +147,13 @@ class UserManagementService:
                 request=request
             )
             
-            if account_type == 'hr':
+            if account_type not in ('standard', 'alumni'):
                 AuditLogService.log_action(
                     user=user,
                     action='ROLE_ASSIGN',
                     performed_by=created_by,
-                    details={'role': 'hr'},
-                    reason='Restricted Career Services HR account created',
+                    details={'role': account_type, 'assigned_campuses': campus_codes if account_type == 'alumni_coordinator' else []},
+                    reason=f'Initial {account_type} account role assigned by superuser',
                     request=request,
                 )
 
@@ -138,7 +167,7 @@ class UserManagementService:
                     # Never send a newly created HR account's password in
                     # email. An administrator must share it through a secure
                     # channel and HR must change it at first opportunity.
-                    html_message = None if account_type == 'hr' else render_to_string('emails/user_created.html', {
+                    html_message = None if account_type not in ('standard', 'alumni') else render_to_string('emails/user_created.html', {
                         'user': user,
                         'password': password,
                         'site_url': site_url,
@@ -159,17 +188,18 @@ Best regards,
 NORSU Alumni System
 """
                     
-                    if account_type == 'hr':
+                    if account_type not in ('standard', 'alumni'):
+                        dashboard_hint = (f'HR dashboard: {site_url.rstrip("/")}/jobs/hr/dashboard/\n'
+                                          if account_type == 'hr' else '')
                         plain_message = (
                             f'Hello {first_name} {last_name},\n\n'
-                            'Your restricted NORSU Career Services HR account has been created.\n'
-                            f'Username: {email}\n'
-                            f'HR dashboard: {site_url.rstrip("/")}/jobs/hr/dashboard/\n\n'
+                            f'Your NORSU {account_type.replace("_", " ").title()} account has been created.\n'
+                            f'Username: {email}\n' + dashboard_hint + '\n'
                             'Obtain your initial password securely from the system administrator.\n'
                             'Please change your password after signing in.\n'
                         )
-                    subject = ('Your NORSU HR account is ready' if account_type == 'hr'
-                               else 'Welcome to NORSU Alumni System')
+                    subject = (f'Your NORSU {account_type.replace("_", " ").title()} account is ready'
+                               if account_type not in ('standard', 'alumni') else 'Welcome to NORSU Alumni System')
                     send_email_with_provider(
                         subject=subject,
                         message=plain_message,
@@ -195,6 +225,7 @@ NORSU Alumni System
             return (user, profile, True, None)
         
         except IntegrityError as e:
+            transaction.set_rollback(True)
             # Handle database constraint violations (duplicate email/username)
             logger.error(
                 f"Database constraint violation during user creation: email={email}",
@@ -210,6 +241,7 @@ NORSU Alumni System
             return (None, None, False, "Unable to create account. Please try again or use a different email/username.")
             
         except Exception as e:
+            transaction.set_rollback(True)
             logger.error(
                 f"Failed to create user {email}: {str(e)}",
                 exc_info=True,

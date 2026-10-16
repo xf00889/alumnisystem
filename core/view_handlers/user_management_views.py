@@ -11,6 +11,7 @@ Provides comprehensive user account management including:
 """
 
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import Http404
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
@@ -209,8 +210,8 @@ class UserCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
         initial = super().get_initial()
         # A convenience deep-link from User Management; the submitted form
         # and the superuser-only view still enforce the actual role choice.
-        if self.request.GET.get('account_type') == 'hr':
-            initial['account_type'] = 'hr'
+        if self.request.GET.get('account_type') in dict(UserCreationForm.ACCOUNT_TYPE_CHOICES):
+            initial['account_type'] = self.request.GET['account_type']
         return initial
 
     def form_valid(self, form):
@@ -238,13 +239,14 @@ class UserCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
             request=self.request,
             send_email=send_email,
             account_type=account_type,
+            campus_codes=form.cleaned_data.get('coordinator_campuses', []),
         )
 
         if success:
             # Success message (Requirement 1.1)
             messages.success(
                 self.request,
-                f'{"HR" if account_type == "hr" else "User"} account created for {email}. '
+                f'{account_type.replace("_", " " ).title()} account created for {email}. '
                 f'{"Welcome email requested (delivery not confirmed)." if send_email else "No email requested."}'
             )
             
@@ -528,7 +530,7 @@ class UserRoleManagementView(LoginRequiredMixin, SuperuserRequiredMixin, View):
                     'message': error_message or f'Failed to {action} role.'
                 }, status=400)
         
-        except User.DoesNotExist:
+        except (User.DoesNotExist, Http404):
             return JsonResponse({
                 'success': False,
                 'message': 'User not found.'
@@ -609,9 +611,14 @@ class UserStatusToggleView(LoginRequiredMixin, SuperuserRequiredMixin, View):
                 data = request.POST
             
             # Get action from request - supports both 'action' (enable/disable) and 'is_active' (true/false)
-            action = data.get('action', '').lower()
-            is_active_str = data.get('is_active', '').lower() if not action else ''
-            reason = data.get('reason', '').strip()
+            action_value = data.get('action', '')
+            active_value = data.get('is_active', '')
+            reason_value = data.get('reason', '')
+            if not all(isinstance(value, str) for value in (action_value, active_value, reason_value)):
+                return JsonResponse({'success': False, 'message': 'Invalid account status request.'}, status=400)
+            action = action_value.lower()
+            is_active_str = active_value.lower() if not action else ''
+            reason = reason_value.strip()
             
             # Convert action or is_active to boolean
             if action == 'enable':
@@ -628,9 +635,12 @@ class UserStatusToggleView(LoginRequiredMixin, SuperuserRequiredMixin, View):
                     'message': 'Invalid action. Must be "enable" or "disable".'
                 }, status=400)
             
-            # Validate reason is provided
-            if not reason:
-                reason = f"User {'enabled' if is_active else 'disabled'} by {request.user.get_full_name()}"
+            # A documented reason is mandatory for every status change.
+            if not reason or len(reason) > 1000:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Enter a reason (1–1000 characters) for this status change.'
+                }, status=400)
             
             # Validate cannot disable self (Requirement 3.2)
             if user.id == request.user.id and not is_active:
@@ -775,11 +785,16 @@ class UserBulkActionView(LoginRequiredMixin, SuperuserRequiredMixin, View):
                     'success': False,
                     'message': 'No users selected. Please select at least one user.'
                 }, status=400)
+            if len(user_ids) > 100:
+                return JsonResponse({'success': False, 'message': 'Select at most 100 users at a time.'}, status=400)
             
             # Get reason
             reason = request.POST.get('reason', '').strip()
-            if not reason:
-                reason = f"Bulk {action} by {request.user.get_full_name()}"
+            if not reason or len(reason) > 1000:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Enter a reason (1–1000 characters) for this bulk status change.'
+                }, status=400)
             
             # Determine target status
             is_active = (action == 'enable')

@@ -130,6 +130,10 @@
         border-color: var(--feedback-error);
     }
 
+    .coordinator-account-campuses { border: 1px solid var(--ui-border); border-radius: .65rem; padding: 1rem; }
+    .coordinator-account-campuses[hidden] { display: none !important; }
+    .coordinator-account-campuses .campus-options > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .5rem; }
+    .coordinator-account-campuses .campus-options label { display: flex; align-items: center; gap: .5rem; padding: .5rem; }
     /* Password Strength Indicator */
     .password-strength {
         margin-top: 0.5rem;
@@ -371,7 +375,7 @@
                 </div>
             </div>
 
-            <!-- Access level: restricted HR accounts never receive staff rights -->
+            <!-- One initial role per account, validated by the server -->
             <div class="form-section">
                 <h3 class="form-section-title">
                     <i class="fas fa-user-shield me-2"></i>Account Access
@@ -386,11 +390,18 @@
                         <small class="form-text d-block">{{ form.account_type.help_text }}</small>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <div class="alert alert-info mb-0" role="note">
-                            <strong>Restricted HR access</strong>
-                            <p class="mb-0 mt-1">HR accounts can post and manage jobs, review internal applications, and access their own HR dashboard and profile. They cannot access general administration or other modules.</p>
+                        <div class="alert alert-info mb-0" role="note" id="accountTypeHelp">
+                            Choose the initial user role carefully. Administrator and Superuser grant privileged access.
+                            HR and Alumni Coordinator have separate restricted workspaces.
                         </div>
                     </div>
+                </div>
+                <fieldset id="newCoordinatorCampusFields" class="coordinator-account-campuses" hidden>
+                    <legend class="form-label">Coordinator assigned campuses <span class="text-danger">*</span></legend>
+                    <p class="form-text">Only alumni records in assigned campuses are accessible to this coordinator.</p>
+                    <div class="campus-options">{{ form.coordinator_campuses }}</div>
+                    {% if form.coordinator_campuses.errors %}<div class="invalid-feedback d-block">{{ form.coordinator_campuses.errors.0 }}</div>{% endif %}
+                </fieldset>
                 </div>
             </div>
 
@@ -451,10 +462,10 @@
                 <div class="form-check">
                     {{ form.send_welcome_email }}
                     <label class="form-check-label" for="id_send_welcome_email">
-                        Send welcome email with login credentials
+                        Send welcome email
                     </label>
                     <small class="form-text d-block mt-1">
-                        HR welcome messages contain sign-in instructions only, never the temporary password. Share the initial password securely.
+                        Privileged-role welcome messages never include the initial password. Share initial credentials securely.
                     </small>
                 </div>
             </div>
@@ -493,4 +504,5 @@
 {% block extra_js %}
 <script>document.documentElement.classList.add("fe-page--admin-user-management-user-create-html");</script>
 <script src="{% static 'js/modules/admin.js' %}"></script>
+<script src="{% static 'js/admin/user-account-type.js' %}"></script>
 {% endblock %}

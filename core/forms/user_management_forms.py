@@ -70,15 +70,33 @@ class UserCreationForm(forms.ModelForm):
     
     ACCOUNT_TYPE_CHOICES = (
         ('standard', 'Standard user'),
+        ('alumni', 'Alumni — standard member'),
+        ('mentor', 'Mentor — pending profile completion'),
         ('hr', 'HR — Career Services only'),
+        ('alumni_coordinator', 'Alumni Coordinator — assigned campuses'),
+        ('admin', 'Administrator — staff access'),
+        ('superuser', 'Superuser — full system access'),
     )
     account_type = forms.ChoiceField(
         choices=ACCOUNT_TYPE_CHOICES,
         initial='standard',
         widget=forms.Select(attrs={'class': 'form-select'}),
         label='Account type',
-        help_text='HR can manage job postings and internal job applications, not the general admin dashboard.',
+        help_text='Choose the account’s initial role. Administrator and Superuser grant elevated access.',
     )
+
+    coordinator_campuses = forms.MultipleChoiceField(
+        required=False,
+        choices=(),
+        widget=forms.CheckboxSelectMultiple,
+        label='Assigned campuses',
+        help_text='Required only for Alumni Coordinator accounts.',
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from alumni_directory.models import Alumni
+        self.fields['coordinator_campuses'].choices = Alumni.CAMPUS_CHOICES
 
     send_welcome_email = forms.BooleanField(
         initial=True,
@@ -163,6 +181,9 @@ class UserCreationForm(forms.ModelForm):
                     'password_confirm': 'Passwords do not match. Please ensure both passwords are identical.'
                 })
         
+        if cleaned_data.get('account_type') == 'alumni_coordinator' and not cleaned_data.get('coordinator_campuses'):
+            self.add_error('coordinator_campuses', 'Select at least one campus for this coordinator.')
+
         return cleaned_data
 
 

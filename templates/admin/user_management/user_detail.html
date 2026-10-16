@@ -5,6 +5,7 @@
 {% block title %}{{ user_obj.get_full_name }} - User Details{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin/user-status-modal.css' %}">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script>document.documentElement.classList.add("fe-page--admin-user-management-user-detail-html");</script>
 <link rel="stylesheet" href="{% static 'css/modules/admin.css' %}">
@@ -77,13 +78,13 @@
                 {% if user_obj.is_active %}
                     <button class="btn btn-danger toggle-status-btn" 
                             data-user-id="{{ user_obj.id }}" 
-                            data-action="disable">
+                            data-action="disable" data-url="{% url 'core:user_status_toggle' user_obj.pk %}">
                         <i class="fas fa-ban me-1"></i> Disable User
                     </button>
                 {% else %}
                     <button class="btn btn-success toggle-status-btn" 
                             data-user-id="{{ user_obj.id }}" 
-                            data-action="enable">
+                            data-action="enable" data-url="{% url 'core:user_status_toggle' user_obj.pk %}">
                         <i class="fas fa-check-circle me-1"></i> Enable User
                     </button>
                 {% endif %}
@@ -342,6 +343,7 @@
     </div>
 </div>
 {% endif %}
+{% include 'admin/user_management/components/status_confirmation_modal.html' %}
 {% endblock %}
 
 {% block page_specific_js %}
@@ -388,7 +390,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.manageUserRole({{ user_obj.id }}, role, action, reason, campuses);
             } else {
                 console.error('manageUserRole function not found');
-                alert('Error: Role management function not loaded');
+                console.error('Role management is unavailable. Refresh the page.');
             }
         });
     }

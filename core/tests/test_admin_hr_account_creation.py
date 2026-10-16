@@ -93,7 +93,7 @@ class AdminHRAccountCreationTests(TestCase):
         self.assertNotEqual(response.status_code, 200)
         self.assertFalse(get_user_model().objects.filter(email='new-hr@example.org').exists())
 
-    def test_form_rejects_forged_privileged_role(self):
+    def test_form_rejects_unsupported_role(self):
         self.client.force_login(self.owner)
         response = self.client.post(reverse('core:user_create'), self.post_data(account_type='superuser'))
         self.assertEqual(response.status_code, 200)
@@ -110,7 +110,7 @@ class AdminHRAccountCreationTests(TestCase):
         result = UserManagementService.create_user(
             email='new-hr@example.org', first_name='Career', last_name='Manager',
             password='InitialHrPassword!2026', created_by=self.owner,
-            send_email=False, account_type='superuser',
+            send_email=False, account_type='unknown_role',
         )
         self.assertFalse(result[2])
         self.assertFalse(get_user_model().objects.filter(email='new-hr@example.org').exists())
