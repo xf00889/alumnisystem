@@ -1,13 +1,26 @@
 """PWA endpoint and privacy regression tests (no database needed)."""
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 from django.conf import settings
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 
 
+@override_settings(SECURE_SSL_REDIRECT=False)
 class PWAFundamentalsTests(SimpleTestCase):
+    def setUp(self):
+        # PWA endpoint tests assume the site has completed initial setup.
+        # The setup middleware must stay enabled in production; isolate only
+        # its readiness check so it does not redirect these endpoint tests.
+        self.setup_ready = patch(
+            'setup.middleware.SetupRequiredMiddleware._is_setup_complete',
+            return_value=True,
+        )
+        self.setup_ready.start()
+        self.addCleanup(self.setup_ready.stop)
+
     def test_manifest_is_public_and_installable(self):
         response = self.client.get(reverse('pwa_manifest'))
         self.assertEqual(response.status_code, 200)

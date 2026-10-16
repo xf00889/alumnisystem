@@ -70,8 +70,24 @@ class WebPushTests(TestCase):
         self.assertFalse(WebPushDelivery.objects.exists())
 
     def test_standalone_launch_logged_in_uses_existing_home(self):
+        # The test database has an incomplete setup state by default.
+        # Model a configured installation without bypassing setup in production.
         self.client.force_login(self.user)
-        self.assertRedirects(self.client.get(reverse('pwa_launch')),reverse('core:home'),fetch_redirect_response=False)
+        with patch('setup.middleware.SetupRequiredMiddleware._is_setup_complete', return_value=True):
+            self.assertRedirects(
+                self.client.get(reverse('pwa_launch')),
+                reverse('core:home'),
+                fetch_redirect_response=False,
+            )
+
+    def test_standalone_launch_still_respects_incomplete_setup(self):
+        self.client.force_login(self.user)
+        with patch('setup.middleware.SetupRequiredMiddleware._is_setup_complete', return_value=False):
+            self.assertRedirects(
+                self.client.get(reverse('pwa_launch')),
+                reverse('setup:welcome'),
+                fetch_redirect_response=False,
+            )
 
     def test_announcement_push_targets_only_matching_subscribers(self):
         from announcements.models import Announcement
