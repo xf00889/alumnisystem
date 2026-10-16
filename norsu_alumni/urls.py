@@ -12,6 +12,7 @@ from accounts import staff_profile_views
 from accounts import google_views
 from core.sitemaps import StaticPageSitemap, EventSitemap
 from core import views
+from core import pwa_views
 import os
 
 # Sitemap configuration
@@ -26,6 +27,8 @@ def profile_search_connected_users(request):
     return search_connected_users_api(request)
 
 urlpatterns = [
+    path("manifest.webmanifest", pwa_views.manifest, name="pwa_manifest"),
+    path("sw.js", pwa_views.service_worker, name="pwa_service_worker"),
     # Log viewer - must be before admin to avoid catch-all pattern
     path('admin/logs/', include(('log_viewer.urls', 'log_viewer'), namespace='log_viewer')),
     path('admin/', admin.site.urls),
