@@ -98,6 +98,9 @@
             finally { running = false; }
         }
         poll();
+        // Refresh immediately when a server-rendered conversation was opened.
+        // Normal polling remains the fallback across tabs and other pages.
+        window.addEventListener('norsu:conversation-opened', poll);
         const interval = window.setInterval(poll, 20000);
         document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') poll(); });
         window.addEventListener('pagehide', function () { window.clearInterval(interval); }, { once: true });

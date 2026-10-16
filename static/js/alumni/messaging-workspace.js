@@ -15,6 +15,21 @@
   let lastSelected = null;
   let activeRequest = null;
   let requestSequence = 0;
+  let lastRenderedChat = null;
+
+  function acknowledgeRenderedConversation() {
+    const rendered = detail.querySelector('.chat-container, .conversation-content');
+    if (!rendered || rendered === lastRenderedChat) return;
+    lastRenderedChat = rendered;
+    // Mark the row visually read only after the server returned a real chat.
+    if (lastSelected) {
+      lastSelected.classList.remove('unread');
+      const pill = lastSelected.querySelector('.unread-badge');
+      if (pill) pill.remove();
+    }
+    // The server marks this recipient's notices read as part of the detail GET.
+    window.dispatchEvent(new Event('norsu:conversation-opened'));
+  }
 
   function enhanceItems(root = workspace) {
     root.querySelectorAll('.conversation-item').forEach((item) => {
@@ -76,7 +91,9 @@
 
   function conversationLoaded() {
     const loaded = detail.querySelector('.chat-container, .conversation-content');
-    if (!loaded || !pendingConversation) return;
+    if (!loaded) return;
+    acknowledgeRenderedConversation();
+    if (!pendingConversation) return;
     pendingConversation = false;
     showChat();
   }

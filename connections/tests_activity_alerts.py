@@ -54,7 +54,7 @@ class ActivityAlertsTests(TestCase):
         self.assertFalse(Notification.objects.filter(recipient=self.alice, notification_type='new_message').exists())
         self.client.force_login(self.bob)
         self.assertEqual(self.client.get(reverse('connections:activity_summary')).json()['unread_messages'], 1)
-        self.client.get(reverse('connections:direct_messages', args=[self.alice.pk]))
+        self.client.get(reverse('connections:direct_messages', args=[self.alice.pk]), HTTP_HX_REQUEST='true')
         self.assertEqual(self.client.get(reverse('connections:activity_summary')).json()['unread_messages'], 0)
 
     def test_group_message_notifies_other_participants(self):

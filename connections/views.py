@@ -19,6 +19,7 @@ import mimetypes
 import json
 import os
 from .models import Connection, DirectConversation, DirectMessage
+from .message_activity import clear_conversation_notices, unread_conversation_count
 from core.models import Notification, NotificationPreference
 from .forms import DirectMessageForm, GroupPhotoUploadForm
 from alumni_directory.models import Alumni
@@ -332,12 +333,6 @@ def my_connections(request):
 
 
 
-def mark_chat_activity_read(user, action_url):
-    """Clear only this conversation's message notices when the chat is opened."""
-    Notification.objects.filter(
-        recipient=user, notification_type='new_message',
-        action_url=action_url, is_read=False,
-    ).update(is_read=True, read_at=timezone.now())
 
 @login_required
 def direct_messages(request, user_id=None):
@@ -385,7 +380,7 @@ def direct_messages(request, user_id=None):
             conversation=conversation
         ).select_related('sender').order_by('-created_at')
         
-        mark_chat_activity_read(request.user, reverse('connections:direct_messages', args=[other_user.id]))
+        clear_conversation_notices(request.user, conversation)
         # Mark messages as read (messages not sent by current user)
         DirectMessage.objects.filter(
             conversation=conversation,
@@ -705,7 +700,7 @@ def group_chat_detail(request, conversation_id):
         conversation=conversation
     ).select_related('sender').order_by('created_at')
 
-    mark_chat_activity_read(request.user, reverse('connections:conversations_list') + f'?open_group={conversation.pk}')
+    clear_conversation_notices(request.user, conversation)
     # Mark messages as read for current user
     DirectMessage.objects.filter(
         conversation=conversation,
@@ -1278,7 +1273,7 @@ def activity_summary(request):
         'success': True,
         'notifications': recent,
         'unread_notifications': unread.exclude(notification_type='new_message').count(),
-        'unread_messages': unread.filter(notification_type='new_message').count(),
+        'unread_messages': unread_conversation_count(request.user),
         'pending_requests': Connection.objects.filter(receiver=request.user, status='PENDING').count(),
     }
     return JsonResponse(payload)

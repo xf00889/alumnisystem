@@ -228,7 +228,17 @@ class DirectConversation(models.Model):
         return "Conversation"
     
     def get_unread_count_for_user(self, user):
-        """Get count of unread messages for a specific user"""
+        """Get unread messages for a recipient (group chats have per-user notices)."""
+        if self.is_group_chat:
+            # DirectMessage.is_read is shared by group members, so using it
+            # would hide Charlie's unread messages when Bob reads the group.
+            from django.contrib.contenttypes.models import ContentType
+            from core.models import Notification
+            return Notification.objects.filter(
+                recipient=user, notification_type='new_message', is_read=False,
+                content_type=ContentType.objects.get_for_model(DirectMessage),
+                object_id__in=self.direct_messages.values('pk'),
+            ).count()
         return self.direct_messages.filter(
             is_read=False
         ).exclude(sender=user).count()
