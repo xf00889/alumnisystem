@@ -1,4 +1,6 @@
 from django import forms
+from pathlib import PurePath
+from django.template.defaultfilters import filesizeformat
 from django.forms import inlineformset_factory
 from .models import JobPosting, JobApplication, RequiredDocument, JobPreference
 from core.recaptcha_fields import DatabaseReCaptchaField
@@ -107,41 +109,69 @@ class JobApplicationForm(forms.ModelForm):
         ]
         widgets = {
             'cover_letter': forms.Textarea(attrs={
-                'rows': 5,
+                'rows': 4,
                 'placeholder': 'Write a brief cover letter explaining why you are interested in this position...'
             }),
         }
 
     def __init__(self, *args, job=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if job:
-            required_docs = job.required_documents.filter(is_required=True)
-            if required_docs.exists():
-                for doc in required_docs:
-                    field_name = f'document_{doc.id}'
-                    self.fields[field_name] = forms.FileField(
-                        label=doc.name,
-                        help_text=f"{doc.description} (Allowed types: {doc.file_types})",
-                        required=True
-                    )
-        
-        # Add reCAPTCHA field if enabled in database
+        # Render every configured requirement through its bound Django field.
+        # That keeps inline validation errors visible and preserves optional uploads.
+        self.document_requirements = tuple(job.required_documents.all()) if job else ()
+        self.fields['resume'].widget.attrs.update({'accept': '.pdf,.doc,.docx'})
+        for doc in self.document_requirements:
+            field_name = f'document_{doc.pk}'
+            details = [f"Allowed: {doc.file_types or 'Any format'}"]
+            if doc.max_file_size:
+                details.append(f"Maximum: {filesizeformat(doc.max_file_size)}")
+            if doc.description:
+                details.insert(0, doc.description)
+            self.fields[field_name] = forms.FileField(
+                label=doc.name,
+                help_text=' · '.join(details),
+                required=doc.is_required,
+                widget=forms.ClearableFileInput(attrs={
+                    'class': 'form-control',
+                    'accept': doc.file_types,
+                }),
+            )
+
+        # Do not remove security verification from the existing workflow.
         if is_recaptcha_enabled():
             self.fields['captcha'] = DatabaseReCaptchaField(
-                widget=DatabaseReCaptchaV3(
-                    attrs={
-                        'data-callback': 'onRecaptchaSuccess',
-                        'data-expired-callback': 'onRecaptchaExpired',
-                        'data-error-callback': 'onRecaptchaError',
-                    }
-                ),
-                label='Security Verification'
+                widget=DatabaseReCaptchaV3(attrs={
+                    'data-callback': 'onRecaptchaSuccess',
+                    'data-expired-callback': 'onRecaptchaExpired',
+                    'data-error-callback': 'onRecaptchaError',
+                }),
+                label='Security Verification',
             )
+
+    def clean(self):
+        cleaned = super().clean()
+        for doc in self.document_requirements:
+            field_name = f'document_{doc.pk}'
+            uploaded = cleaned.get(field_name)
+            if not uploaded:
+                continue
+            if doc.max_file_size and uploaded.size > doc.max_file_size:
+                self.add_error(field_name, f'Maximum file size is {filesizeformat(doc.max_file_size)}.')
+            allowed_extensions = {
+                ext.strip().lower().lstrip('.')
+                for ext in (doc.file_types or '').split(',') if ext.strip()
+            }
+            extension = PurePath(uploaded.name).suffix.lower().lstrip('.')
+            if allowed_extensions and extension not in allowed_extensions:
+                self.add_error(field_name, f'Please upload a file of type: {doc.file_types}.')
+        return cleaned
 
     def clean_resume(self):
         resume = self.cleaned_data.get('resume')
         if not resume:
             raise forms.ValidationError('A resume is required.')
+        if PurePath(resume.name).suffix.lower() not in {'.pdf', '.doc', '.docx'}:
+            raise forms.ValidationError('Resume must be a PDF, DOC or DOCX file.')
         if resume.size > 5 * 1024 * 1024:  # 5MB limit
             raise forms.ValidationError('Resume file size must be under 5MB.')
         return resume

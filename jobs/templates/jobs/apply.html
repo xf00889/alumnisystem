@@ -6,10 +6,8 @@
 {% block title %}Apply for {{ job.job_title|format_job_title }}{% endblock %}
 
 {% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script>document.documentElement.classList.add("fe-page--app-jobs-jobs-apply-html");</script>
 <link rel="stylesheet" href="{% static 'css/modules/jobs-app.css' %}">
-
 {% if use_alumni_layout %}
 <link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
 <link rel="stylesheet" href="{% static 'css/alumni/jobs.css' %}">
@@ -18,133 +16,89 @@
 
 {% block content %}
 {% if use_alumni_layout %}
-{% include 'alumni/components/breadcrumbs.html' with area='Job board' %}
+{% url 'jobs:job_list' as job_list_url %}
+{% include 'alumni/components/breadcrumbs.html' with area='Apply' parent_area='Job board' parent_url=job_list_url %}
 {% endif %}
 
-<div class="application-wrapper">
-    <div class="container-fluid px-2 px-md-3">
-        <!-- Dashboard Header -->
-        <div class="dashboard-header">
-            <h1 class="mb-2"><i class="fas fa-paper-plane me-3"></i>Job Application</h1>
-            <p class="mb-0">Apply for {{ job.job_title|format_job_title }} at {{ job.company_name }}</p>
-        </div>
-        
-        <!-- Job Summary Card -->
-        <div class="dashboard-card">
+<div class="application-wrapper alumni-job-application">
+    <div class="{% if use_alumni_layout %}alumni-shell{% else %}container-fluid{% endif %} job-application-container">
+        <header class="dashboard-header job-application-hero">
+            <div class="job-application-hero__icon" aria-hidden="true"><i class="fas fa-paper-plane"></i></div>
+            <div class="job-application-hero__copy">
+                <h1>Job Application</h1>
+                <p>Apply for {{ job.job_title|format_job_title }} at {{ job.company_name }}</p>
+            </div>
+        </header>
+
+        <section class="dashboard-card job-application-summary" aria-labelledby="job-application-position">
             <div class="job-summary-card">
-                <h2 class="job-summary-title">{{ job.job_title|format_job_title }}</h2>
-                <div class="job-summary-details">
-                    <div class="job-summary-item">
-                        <i class="fas fa-building"></i>
-                        <span>{{ job.company_name }}</span>
-                    </div>
-                    <div class="job-summary-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>{{ job.location }}</span>
-                    </div>
-                    <div class="job-summary-item">
-                        <i class="fas fa-briefcase"></i>
-                        <span>{{ job.get_job_type_display }}</span>
-                    </div>
+                <h2 id="job-application-position" class="job-summary-title">{{ job.job_title|format_job_title }}</h2>
+                <div class="job-summary-details" aria-label="Position details">
+                    <span class="job-summary-item"><i class="fas fa-building" aria-hidden="true"></i>{{ job.company_name }}</span>
+                    <span class="job-summary-item"><i class="fas fa-map-marker-alt" aria-hidden="true"></i>{{ job.location }}</span>
+                    <span class="job-summary-item"><i class="fas fa-briefcase" aria-hidden="true"></i>{{ job.get_job_type_display }}</span>
                     {% if job.salary_range %}
-                    <div class="job-summary-item">
-                        <i class="fas fa-money-bill-wave"></i>
-                        <span>{{ job.salary_range }}</span>
-                    </div>
+                    <span class="job-summary-item"><i class="fas fa-money-bill-wave" aria-hidden="true"></i>{{ job.salary_range }}</span>
                     {% endif %}
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Application Form -->
-        <div class="dashboard-card">
-            <div class="card-body p-4">
-                <form method="post" enctype="multipart/form-data" class="application-form">
-                    {% csrf_token %}
-                    
-                    <div class="row g-4">
-                        <!-- Left Form Column -->
-                        <div class="col-lg-6">
-                            <div class="form-section">
-                                <h3 class="section-title">Cover Letter</h3>
-                                {{ form.cover_letter|as_crispy_field }}
-                            </div>
+        <section class="dashboard-card job-application-panel" aria-label="Application form">
+            <form method="post" enctype="multipart/form-data" class="application-form">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+                {% endif %}
+                {% if form.errors %}
+                <p class="job-application-error-summary" role="alert">Some information needs attention. Review the highlighted fields before submitting.</p>
+                {% endif %}
 
-                            <div class="form-section">
-                                <h3 class="section-title">Resume</h3>
-                                <div class="file-upload-wrapper">
-                                    {{ form.resume|as_crispy_field }}
-                                    <div class="file-upload-info">
-                                        <i class="fas fa-info-circle"></i>
-                                        Maximum file size: 5MB. Accepted formats: PDF, DOC, DOCX
-                                    </div>
-                                </div>
-                            </div>
+                <div class="row g-3 job-application-grid">
+                    <div class="col-lg-6">
+                        <div class="form-section" aria-labelledby="job-application-introduction">
+                            <h2 id="job-application-introduction" class="section-title">Your introduction</h2>
+                            {{ form.cover_letter|as_crispy_field }}
                         </div>
+                        <div class="form-section" aria-labelledby="job-application-resume">
+                            <h2 id="job-application-resume" class="section-title">Resume <span class="job-application-required">Required</span></h2>
+                            <div class="file-upload-wrapper">{{ form.resume|as_crispy_field }}</div>
+                            <p class="file-upload-info"><i class="fas fa-circle-info" aria-hidden="true"></i>PDF, DOC or DOCX · Up to 5 MB</p>
+                        </div>
+                    </div>
 
-                        <!-- Right Form Column -->
-                        <div class="col-lg-6">
-                            {% if job.required_documents.all %}
-                            <div class="form-section">
-                                <h3 class="section-title">Required Documents</h3>
-                                {% for doc in job.required_documents.all %}
-                                <div class="mb-4">
-                                    <label for="document_{{ doc.id }}" class="form-label">
-                                        {{ doc.name }}
-                                        {% if doc.is_required %}
-                                        <span class="required-label">*</span>
-                                        {% endif %}
-                                    </label>
-                                    <div class="file-upload-wrapper">
-                                        <input type="file" 
-                                               name="document_{{ doc.id }}" 
-                                               id="document_{{ doc.id }}" 
-                                               class="form-control"
-                                               {% if doc.is_required %}required{% endif %}
-                                               accept="{{ doc.file_types }}">
-                                        {% if doc.description %}
-                                        <div class="help-text">{{ doc.description }}</div>
-                                        {% endif %}
-                                        <div class="file-upload-info">
-                                            <i class="fas fa-info-circle"></i>
-                                            Maximum file size: {{ doc.max_file_size|filesizeformat }}. 
-                                            Accepted formats: {{ doc.file_types }}
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
+                    <div class="col-lg-6">
+                        {% if job.required_documents.exists %}
+                        <div class="form-section" aria-labelledby="job-application-documents">
+                            <h2 id="job-application-documents" class="section-title">Required documents</h2>
+                            {% for field in form %}
+                            {% if field.name|slice:":9" == "document_" %}
+                            <div class="job-application-document-field">{{ field|as_crispy_field }}</div>
                             {% endif %}
-
-                            <div class="form-section">
-                                <h3 class="section-title">Additional Documents</h3>
-                                <div class="file-upload-wrapper">
-                                    {{ form.additional_documents|as_crispy_field }}
-                                    <div class="file-upload-info">
-                                        <i class="fas fa-info-circle"></i>
-                                        Maximum file size: 10MB. You can upload additional supporting documents here.
-                                    </div>
-                                </div>
-                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-section" aria-labelledby="job-application-supporting">
+                            <h2 id="job-application-supporting" class="section-title">Additional documents <span class="job-application-optional">Optional</span></h2>
+                            <div class="file-upload-wrapper">{{ form.additional_documents|as_crispy_field }}</div>
+                            <p class="file-upload-info"><i class="fas fa-circle-info" aria-hidden="true"></i>Additional supporting file · Up to 10 MB</p>
                         </div>
                     </div>
+                </div>
 
-                    {% if form.errors %}<div class="alert alert-danger" role="alert">Please correct the highlighted application fields and try again.{{ form.non_field_errors }}</div>{% endif %}
-                    {% if form.captcha %}
-                    <div class="form-section mb-3"><h3 class="section-title">Security verification</h3>{{ form.captcha|as_crispy_field }}</div>
-                    {% endif %}
-                    <!-- Form Actions -->
-                    <div class="form-actions">
-                        <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-times"></i>Cancel
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-paper-plane"></i>Submit Application
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                {% if form.captcha %}
+                <div class="form-section job-application-captcha" aria-labelledby="job-application-security">
+                    <h2 id="job-application-security" class="section-title">Security verification</h2>
+                    {{ form.captcha|as_crispy_field }}
+                </div>
+                {% endif %}
+
+                <div class="form-actions">
+                    <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left" aria-hidden="true"></i>Cancel</a>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane" aria-hidden="true"></i>Submit Application</button>
+                </div>
+            </form>
+        </section>
     </div>
 </div>
 {% endblock %}

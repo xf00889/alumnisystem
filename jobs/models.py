@@ -182,6 +182,26 @@ class JobApplication(models.Model):
         return f"{self.applicant.get_full_name()} - {self.job.job_title}"
 
 
+class JobApplicationDocument(models.Model):
+    """Individual uploaded documents, retained even if a job requirement is edited."""
+    application = models.ForeignKey(
+        JobApplication, on_delete=models.CASCADE, related_name='required_document_files'
+    )
+    requirement = models.ForeignKey(
+        RequiredDocument, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='submitted_files'
+    )
+    name = models.CharField(max_length=100)
+    file = models.FileField(upload_to='job_applications/requirements/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} — application {self.application_id}"
+
+    class Meta:
+        ordering = ['pk']
+
+
 class ScrapedJob(models.Model):
     """Model to store scraped job data as JSON"""
     

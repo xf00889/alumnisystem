@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.core.mail import send_mail
 from django.conf import settings
 from django_ratelimit.decorators import ratelimit
-from .models import JobPosting, JobApplication, RequiredDocument, ScrapedJob, UserJobAIScore
+from .models import JobPosting, JobApplication, JobApplicationDocument, RequiredDocument, ScrapedJob, UserJobAIScore
 from .forms import JobPostingForm, JobApplicationForm, RequiredDocumentFormSet, JobPreferenceForm
 from .scraper_forms import JobScraperForm
 from .scraper_utils import scraper
@@ -1113,21 +1113,23 @@ def apply_for_job(request, slug):
                         application.applicant = request.user
                         application.save()
                         
-                        # Handle required documents
-                        for doc in job.required_documents.filter(is_required=True):
-                            field_name = f'document_{doc.id}'
-                            if field_name in request.FILES:
-                                document = request.FILES[field_name]
-                                # Store the document with the application
-                                # You might want to create a separate model for this
-                                # For now, we'll store it in additional_documents
-                                application.additional_documents = document
-                                application.save()
+                        # Persist each required/optional configured upload independently.
+                        # Do not overwrite the user's separate additional_documents file.
+                        for doc in form.document_requirements:
+                            uploaded = form.cleaned_data.get(f'document_{doc.pk}')
+                            if uploaded:
+                                JobApplicationDocument.objects.create(
+                                    application=application,
+                                    requirement=doc,
+                                    name=doc.name,
+                                    file=uploaded,
+                                )
                         
                         messages.success(request, 'Your application has been submitted successfully!')
                         return redirect('jobs:job_detail', slug=slug)
-                except Exception as e:
-                    messages.error(request, f'Error submitting application: {str(e)}')
+                except Exception:
+                    logger.exception('Unable to submit job application for job %s', job.pk)
+                    messages.error(request, 'Unable to submit your application. Please try again.')
         else:
             form = JobApplicationForm(job=job)
         
@@ -1152,7 +1154,7 @@ def manage_applications(request, slug):
     job = get_object_or_404(JobPosting, slug=slug)
     if not job.accepts_internal_applications:
         raise Http404('This position does not accept applications through NORSU.')
-    applications = job.applications.select_related('applicant')
+    applications = job.applications.select_related('applicant').prefetch_related('required_document_files')
     
     # Filter by status
     status = request.GET.get('status')
