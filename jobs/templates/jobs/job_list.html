@@ -461,8 +461,10 @@
                                                     </p>
                                                     {% endif %}
                                                     {% if job.url and job.url != '#' and job.url != '#no-url-found' %}
-                                                    <a href="{{ job.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                                        <i class="fas fa-external-link-alt me-1"></i>View Job
+                                                    <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer"
+                                                       class="btn btn-sm btn-outline-primary"
+                                                       aria-label="View external details for {{ job.title|default:'this job' }}">
+                                                        <i class="fas fa-external-link-alt me-1" aria-hidden="true"></i>View Details
                                                     </a>
                                                     {% else %}
                                                     <span class="text-muted small">No direct link available</span>
@@ -887,7 +889,8 @@ function bindJobCards() {
             if (detailLink) window.location.href = detailLink.href;
         });
         card.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
+            // Let focused action links handle Enter themselves (especially external links).
+            if (event.key === 'Enter' && event.target === card) {
                 const detailLink = card.querySelector('.job-title-modern a');
                 if (detailLink) window.location.href = detailLink.href;
             }

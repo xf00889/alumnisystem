@@ -65,17 +65,31 @@
             </div>
         </div>
     </div>
-    <div class="card-action">
+    <div class="card-action job-card-actions" aria-label="Job actions for {{ job.job_title }}">
+        {# Every published posting, including external sources, has a NORSU job details page. #}
+        <a href="{% url 'jobs:job_detail' job.slug %}"
+           class="btn btn-outline-primary btn-apply-modern job-card-action-details"
+           aria-label="View details for {{ job.job_title }}">
+            <i class="fas fa-info-circle me-1" aria-hidden="true"></i>View Details
+        </a>
         {% if job.accepts_internal_applications %}
             {% if job.has_applied %}
-            <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-primary btn-apply-modern" aria-label="View submitted application for {{ job.job_title }}">Applied · View Status</a>
+            <a href="{% url 'jobs:job_detail' job.slug %}"
+               class="btn btn-outline-primary btn-apply-modern job-card-action-apply"
+               aria-label="View submitted application for {{ job.job_title }}">
+                <i class="fas fa-check-circle me-1" aria-hidden="true"></i>Applied · View Status
+            </a>
             {% else %}
-            <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-primary btn-apply-modern">Apply Now</a>
+            <a href="{% url 'jobs:apply_for_job' job.slug %}"
+               class="btn btn-primary btn-apply-modern job-card-action-apply">
+                <i class="fas fa-paper-plane me-1" aria-hidden="true"></i>Apply Now
+            </a>
             {% endif %}
         {% elif job.application_link %}
-        <a href="{{ job.application_link }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-apply-modern">Apply on External Site</a>
-        {% else %}
-        <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-primary btn-apply-modern">View Details</a>
+        <a href="{{ job.application_link }}" target="_blank" rel="noopener noreferrer"
+           class="btn btn-outline-primary btn-apply-modern job-card-action-apply">
+            <i class="fas fa-external-link-alt me-1" aria-hidden="true"></i>Apply on External Site
+        </a>
         {% endif %}
     </div>
 </article>
