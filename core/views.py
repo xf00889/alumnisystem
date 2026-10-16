@@ -62,9 +62,10 @@ def home(request):
         # Show authenticated home page for users who have completed registration
         try:
             from announcements.models import Announcement
+            from announcements.audience import audience_q_for_user
             announcements = Announcement.objects.filter(
                 is_active=True
-            ).order_by('-date_posted')[:5]
+            ).filter(audience_q_for_user(request.user)).order_by('-date_posted')[:5]
         except (ImportError, Exception) as e:
             logger.error(f"Error fetching announcements for authenticated user: {e}")
             announcements = []
@@ -577,9 +578,11 @@ def search(request):
         results['events'] = event_results
         
         # Search for announcements
-        announcement_results = Announcement.objects.filter(
-            Q(title__icontains=query) |
-            Q(content__icontains=query)
+        from announcements.audience import audience_q_for_user
+        announcement_results = Announcement.objects.filter(is_active=True).filter(
+            audience_q_for_user(request.user)
+        ).filter(
+            Q(title__icontains=query) | Q(content__icontains=query)
         )[:10]
         results['announcements'] = announcement_results
         
@@ -954,7 +957,7 @@ def landing_announcements(request):
     Display active announcements for unauthenticated users with pagination
     """
     announcements_list = Announcement.objects.filter(
-        is_active=True
+        is_active=True, target_audience='ALL'
     ).order_by('-date_posted')
 
     paginator = Paginator(announcements_list, 10)  # Show 10 announcements per page
@@ -980,18 +983,18 @@ def landing_news(request):
         news_category = Category.objects.filter(name__icontains='news').first()
         if news_category:
             news_list = Announcement.objects.filter(
-                is_active=True,
+                is_active=True, target_audience='ALL',
                 category=news_category
             ).order_by('-date_posted')
         else:
             # Fallback to high priority announcements
             news_list = Announcement.objects.filter(
-                is_active=True,
+                is_active=True, target_audience='ALL',
                 priority_level__in=['HIGH', 'URGENT']
             ).order_by('-date_posted')
     except:
         news_list = Announcement.objects.filter(
-            is_active=True,
+            is_active=True, target_audience='ALL',
             priority_level__in=['HIGH', 'URGENT']
         ).order_by('-date_posted')
 

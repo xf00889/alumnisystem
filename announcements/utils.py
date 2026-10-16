@@ -3,6 +3,7 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.contrib.auth import get_user_model
+from .audience import announcement_recipients
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,20 +36,14 @@ def send_announcement_notification(announcement, recipient_list=None):
         
         # If no recipient list is provided, get users based on target audience
         if recipient_list is None:
-            users = User.objects.filter(is_active=True)
-            logger.info(f"Total active users found: {users.count()}")
-            
-            if announcement.target_audience == 'RECENT':
-                users = users.filter(profile__graduation_year__gte=2023)
-                logger.info(f"Filtered to recent graduates: {users.count()} users")
-            elif announcement.target_audience == 'DEPARTMENT':
-                logger.info("Department filtering not implemented yet")
-            
+            users = announcement_recipients(announcement)
+            logger.info('Audience-matched recipients: %s', users.count())
             recipient_list = list(users.values_list('email', flat=True))
         
-        # Filter out empty email addresses and remove duplicates
-        recipient_list = list(filter(None, set(recipient_list)))
-        logger.info(f"Final recipient list: {recipient_list}")
+        # Explicit recipient lists must never bypass the announcement audience.
+        permitted = set(announcement_recipients(announcement).values_list('email', flat=True))
+        recipient_list = list({email for email in recipient_list if email and email in permitted})
+        logger.info('Announcement recipient count: %s', len(recipient_list))
         
         # Debug information
         logger.info(f"Preparing to send email to {len(recipient_list)} recipients")

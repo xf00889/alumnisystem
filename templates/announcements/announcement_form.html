@@ -30,6 +30,7 @@
             <div class="card-body">
                 <form method="post" id="announcementForm" novalidate>
                     {% csrf_token %}
+                    {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
                     
                     <div class="form-group">
                         {{ form.title|as_crispy_field }}
@@ -50,6 +51,25 @@
                                 {{ form.target_audience|as_crispy_field }}
                             </div>
                         </div>
+                    </div>
+
+                    <div id="announcementAudienceDetail" class="form-group announcement-target-detail" hidden>
+                        <label class="form-label" for="id_target_value" id="announcementAudienceLabel">Specify recipients</label>
+                        {{ form.target_value }}
+                        {% for error in form.target_value.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
+                        <p class="announcement-target-help" id="announcementAudienceHelp">Choose an existing NORSU audience.</p>
+                        <datalist id="announcement-colleges">
+                            {% for code, label in college_suggestions %}
+                            <option value="{{ label }}">{{ code }}</option>
+                            <option value="{{ code }}">{{ label }}</option>
+                            {% endfor %}
+                        </datalist>
+                        <datalist id="announcement-programs">
+                            {% for code, label in program_suggestions %}
+                            <option value="{{ label }}">{{ code }}</option>
+                            <option value="{{ code }}">{{ label }}</option>
+                            {% endfor %}
+                        </datalist>
                     </div>
 
                     <div class="form-group">
@@ -80,6 +100,7 @@
 {% endblock %}
 
 {% block page_specific_js %}
+<script src="{% static 'js/modules/announcement-audience.js' %}" defer></script>
 <!-- Sweet Alert Utilities -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -95,6 +116,10 @@
         if (form) {
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
                 
                 // Show confirmation dialog
                 Swal.fire({

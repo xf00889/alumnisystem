@@ -1,10 +1,71 @@
 from django import forms
 from .models import Announcement, Category
+from .audience import COLLEGE_LABELS, PROGRAM_LABELS, normalize_target
+from alumni_directory.models import Alumni
+from django.utils import timezone
 from core.recaptcha_fields import DatabaseReCaptchaField
 from core.recaptcha_widgets import DatabaseReCaptchaV3
 from core.recaptcha_utils import is_recaptcha_enabled
 
-class AnnouncementForm(forms.ModelForm):
+
+
+class TargetAudienceFormMixin:
+    """Target-specific input appears only for Batch, College, Program, Department."""
+
+    def setup_audience(self):
+        field = self.fields['target_value']
+        field.required = False  # conditionally validated in clean()
+        field.widget.attrs.update({
+            'class': 'form-control',
+            'autocomplete': 'off',
+            'maxlength': 200,
+            'placeholder': 'Enter the intended audience',
+        })
+        self.college_suggestions = list(COLLEGE_LABELS.items())
+        # Keep common named degrees discoverable. The user may also type an
+        # existing program code stored in Alumni.course.
+        registered = Alumni.objects.exclude(course='').values_list('course', flat=True).distinct()
+        self.program_suggestions = list(PROGRAM_LABELS.items())
+        catalog_codes = set(PROGRAM_LABELS)
+        self.program_suggestions.extend((value, value) for value in registered if value and value not in catalog_codes)
+
+    def clean(self):
+        cleaned = super().clean()
+        kind = cleaned.get('target_audience')
+        target = ' '.join((cleaned.get('target_value') or '').strip().split())
+        if kind in ('ALL', 'RECENT'):
+            cleaned['target_value'] = ''  # prevent stale audience criteria
+            return cleaned
+        if kind not in ('BATCH', 'COLLEGE', 'PROGRAM', 'DEPARTMENT'):
+            return cleaned
+        if not target:
+            self.add_error('target_value', 'Specify who should receive this announcement.')
+            return cleaned
+        if kind == 'BATCH':
+            if not (target.isascii() and target.isdecimal() and len(target) == 4):
+                self.add_error('target_value', 'Enter a valid four-digit graduation year.')
+                return cleaned
+            if not 1900 <= int(target) <= timezone.now().year + 1:
+                self.add_error('target_value', 'Enter a valid graduation year.')
+                return cleaned
+        elif kind == 'COLLEGE':
+            target = normalize_target(kind, target)
+            if target not in COLLEGE_LABELS:
+                self.add_error('target_value', 'Choose a college name or code from NORSU colleges.')
+                return cleaned
+        else:
+            target = normalize_target(kind, target)
+            # New programs may be registered after this patch: accept an exact
+            # program value currently found on an alumni record as well.
+            if (target not in PROGRAM_LABELS and
+                not Alumni.objects.filter(course__iexact=target).exists()):
+                self.add_error('target_value', 'Choose a registered program name or code.')
+                return cleaned
+        cleaned['target_value'] = target
+        return cleaned
+
+
+class AnnouncementForm(TargetAudienceFormMixin, forms.ModelForm):
     """Form for creating announcements with CAPTCHA protection"""
     
     # Hardcoded category choices as fallback
@@ -31,7 +92,7 @@ class AnnouncementForm(forms.ModelForm):
     
     class Meta:
         model = Announcement
-        fields = ['title', 'content', 'priority_level', 'target_audience']
+        fields = ['title', 'content', 'priority_level', 'target_audience', 'target_value']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -52,6 +113,7 @@ class AnnouncementForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setup_audience()
         
         # Try to load categories from database, fallback to hardcoded choices
         try:
@@ -99,12 +161,12 @@ class AnnouncementForm(forms.ModelForm):
         
         return category
 
-class AnnouncementUpdateForm(forms.ModelForm):
+class AnnouncementUpdateForm(TargetAudienceFormMixin, forms.ModelForm):
     """Form for editing announcements with is_active field"""
     
     class Meta:
         model = Announcement
-        fields = ['title', 'content', 'category', 'priority_level', 'target_audience', 'is_active']
+        fields = ['title', 'content', 'category', 'priority_level', 'target_audience', 'target_value', 'is_active']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -131,6 +193,7 @@ class AnnouncementUpdateForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setup_audience()
         
         # Add reCAPTCHA field if enabled in database
         if is_recaptcha_enabled():

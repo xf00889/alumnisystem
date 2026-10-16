@@ -32,6 +32,9 @@ class Announcement(models.Model):
         ('ALL', 'All Alumni'),
         ('RECENT', 'Recent Graduates'),
         ('DEPARTMENT', 'Specific Department'),
+        ('BATCH', 'Graduation Batch'),
+        ('COLLEGE', 'College'),
+        ('PROGRAM', 'Degree Program'),
     ]
     
     title = models.CharField(max_length=200)
@@ -40,6 +43,10 @@ class Announcement(models.Model):
     last_modified = models.DateTimeField(auto_now=True)
     priority_level = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='MEDIUM')
     target_audience = models.CharField(max_length=20, choices=TARGET_CHOICES, default='ALL')
+    target_value = models.CharField(
+        max_length=200, blank=True, default='',
+        help_text='Batch year, college code, or degree-program code/name for a targeted announcement.',
+    )
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='announcements')
     is_active = models.BooleanField(default=True)
     views_count = models.PositiveIntegerField(default=0)
@@ -63,35 +70,13 @@ class Announcement(models.Model):
         cache.delete('announcement_list')
         super().save(*args, **kwargs)
     
+    @property
+    def target_description(self):
+        """Safe human-readable target for the admin directory and preview."""
+        from .audience import audience_label
+        return audience_label(self)
+
     def is_visible_to(self, user):
-        """
-        Check if the announcement is visible to the given user.
-        """
-        # Staff members can see all announcements
-        if user.is_staff:
-            return True
-            
-        # Check if announcement is active
-        if not self.is_active:
-            return False
-            
-        # Handle target audience restrictions
-        if self.target_audience == 'ALL':
-            return True
-        elif self.target_audience == 'RECENT':
-            # Get the user's graduation year from their profile
-            try:
-                graduation_year = user.profile.education_set.filter(is_primary=True).first().graduation_year
-                current_year = timezone.now().year
-                return (current_year - graduation_year) <= 5  # Consider "recent" as within 5 years
-            except (AttributeError, TypeError):
-                return False
-        elif self.target_audience == 'DEPARTMENT':
-            # Get the user's department from their profile
-            try:
-                user_program = user.profile.education_set.filter(is_primary=True).first().program
-                return user_program == self.category.name
-            except (AttributeError, TypeError):
-                return False
-                
-        return True  # Default to visible if no restrictions apply
+        """Use the same audience rules for cards, details, searches and emails."""
+        from .audience import visible_announcements_for
+        return visible_announcements_for(user).filter(pk=self.pk).exists()

@@ -11,7 +11,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Announcement)
 class AnnouncementAdmin(admin.ModelAdmin):
-    list_display = ('title', 'category', 'priority_level', 'target_audience', 'date_posted', 'is_active', 'views_count')
+    list_display = ('title', 'category', 'priority_level', 'target_audience', 'target_value', 'date_posted', 'is_active', 'views_count')
     list_filter = ('category', 'priority_level', 'target_audience', 'is_active', 'date_posted')
     search_fields = ('title', 'content')
     date_hierarchy = 'date_posted'
@@ -23,7 +23,7 @@ class AnnouncementAdmin(admin.ModelAdmin):
             'fields': ('title', 'content')
         }),
         ('Classification', {
-            'fields': ('category', 'priority_level', 'target_audience')
+            'fields': ('category', 'priority_level', 'target_audience', 'target_value')
         }),
         ('Status', {
             'fields': ('is_active', 'views_count')

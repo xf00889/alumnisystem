@@ -10,6 +10,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.contrib import messages
 from .models import Announcement, Category
+from .audience import visible_announcements_for, audience_label
 from .forms import AnnouncementForm, AnnouncementUpdateForm, PublicAnnouncementForm
 from .utils import send_announcement_notification
 from django.views.decorators.csrf import csrf_protect
@@ -129,7 +130,7 @@ class AnnouncementListView(LoginRequiredMixin, ListView):
         return ['announcements/announcement_list_admin.html'] if is_manager else [self.template_name]
 
     def get_queryset(self):
-        queryset = Announcement.objects.filter(is_active=True).select_related('category').order_by('-date_posted')
+        queryset = visible_announcements_for(self.request.user).select_related('category').order_by('-date_posted')
         
         # Apply search filter
         search_query = self.request.GET.get('q')
@@ -228,6 +229,13 @@ class AnnouncementCreateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMes
     success_message = "Announcement was created successfully!"
     success_url = reverse_lazy('announcements:announcement-list')
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = context['form']
+        context['college_suggestions'] = form.college_suggestions
+        context['program_suggestions'] = form.program_suggestions
+        return context
+
     def test_func(self):
         """Check if user is staff, superuser, or alumni coordinator"""
         is_coordinator = hasattr(self.request.user, 'profile') and self.request.user.profile.is_alumni_coordinator
@@ -269,6 +277,13 @@ class AnnouncementUpdateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMes
     success_message = "Announcement was updated successfully!"
     success_url = reverse_lazy('announcements:announcement-list')
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = context['form']
+        context['college_suggestions'] = form.college_suggestions
+        context['program_suggestions'] = form.program_suggestions
+        return context
+
     def test_func(self):
         """Check if user is staff, superuser, or alumni coordinator"""
         is_coordinator = hasattr(self.request.user, 'profile') and self.request.user.profile.is_alumni_coordinator
@@ -371,7 +386,7 @@ def announcement_search(request):
         categories = request.GET.getlist('category')
 
         # Build the base queryset
-        queryset = Announcement.objects.filter(is_active=True).order_by('-date_posted')
+        queryset = visible_announcements_for(request.user).order_by('-date_posted')
 
         # Apply search filter if query exists
         if query:
@@ -459,10 +474,9 @@ def announcement_detail_api(request, pk):
     """
     JSON API endpoint for the announcement modal.
     Returns announcement data for any active announcement visible in the list.
-    Uses a relaxed permission check — if the announcement is active and the
-    user is authenticated, they can view it in the modal.
+    Restricts modal access to audience-matched users or authorized managers.
     """
-    announcement = get_object_or_404(Announcement, pk=pk, is_active=True)
+    announcement = get_object_or_404(visible_announcements_for(request.user), pk=pk)
 
     # Increment view count
     Announcement.objects.filter(pk=pk).update(views_count=announcement.views_count + 1)
@@ -475,7 +489,7 @@ def announcement_detail_api(request, pk):
         'priority_level': announcement.priority_level,
         'priority_display': announcement.get_priority_level_display(),
         'target_audience': announcement.target_audience,
-        'target_display': announcement.get_target_audience_display(),
+        'target_display': audience_label(announcement),
         'category': announcement.category.name if announcement.category else '',
         'views_count': announcement.views_count + 1,
         'can_edit': request.user.is_staff or request.user.is_superuser or (
