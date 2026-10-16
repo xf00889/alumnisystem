@@ -403,6 +403,13 @@ def verify_email(request):
                         ip_address=request.META.get('REMOTE_ADDR')
                     )
                     
+                    # An admin-created HR account is not an alumni registrar
+                    # signup; keep email verification, but skip alumni setup.
+                    from jobs.hr_access import is_hr_only
+                    if is_hr_only(user):
+                        messages.success(request, 'Email verified successfully! Welcome to the HR workspace.')
+                        return redirect('jobs:hr_dashboard')
+
                     # Check if user has completed post-registration
                     try:
                         profile = user.profile

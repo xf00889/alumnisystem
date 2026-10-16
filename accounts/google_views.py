@@ -4,6 +4,7 @@ Custom Google OAuth views that fix the callback URL issue
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.urls import reverse
+from jobs.hr_access import is_hr_only
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.views import OAuth2LoginView, OAuth2CallbackView
 from allauth.socialaccount.models import SocialApp
@@ -52,6 +53,8 @@ class FixedOAuth2CallbackView(OAuth2CallbackView):
                 
                 # Check if user is authenticated
                 if request.user.is_authenticated:
+                    if is_hr_only(request.user):
+                        return redirect('jobs:hr_dashboard')
                     # Check if they need to complete registration
                     try:
                         profile = request.user.profile
@@ -84,6 +87,8 @@ class FixedOAuth2CallbackView(OAuth2CallbackView):
                     
                     # Check if user is authenticated
                     if request.user.is_authenticated:
+                        if is_hr_only(request.user):
+                            return redirect('jobs:hr_dashboard')
                         # Check if they need to complete registration
                         try:
                             profile = request.user.profile

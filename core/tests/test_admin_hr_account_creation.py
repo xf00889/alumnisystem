@@ -64,6 +64,8 @@ class AdminHRAccountCreationTests(TestCase):
         self.assertTrue(new_hr.check_password('InitialHrPassword!2026'))
         self.assertTrue(is_hr_only(new_hr))
         self.assertTrue(new_hr.profile.is_hr)
+        # HR provisioned by an administrator is not an alumni signup.
+        self.assertFalse(new_hr.profile.has_completed_registration)
         self.assertFalse(new_hr.profile.is_alumni_coordinator)
         self.assertFalse(new_hr.is_staff)
         self.assertFalse(new_hr.is_superuser)

@@ -9,6 +9,7 @@ from django.views.decorators.http import require_POST
 from django.contrib import messages
 from .decorators import email_verified_required
 from .staff_profile_views import has_staff_workspace, has_verified_alumni
+from jobs.hr_access import is_hr_only
 import logging
 
 logger = logging.getLogger(__name__)
@@ -70,6 +71,11 @@ from core.models.notifications import Notification
 
 @email_verified_required
 def post_registration(request):
+    # Restricted HR accounts do not have (and must not claim) alumni registry
+    # records. Redirect even if an old onboarding link was bookmarked.
+    if is_hr_only(request.user):
+        return redirect('jobs:hr_dashboard')
+
     # First, ensure the user has a profile
     try:
         profile = request.user.profile
@@ -3042,6 +3048,8 @@ def cancel_registration(request):
     from allauth.account.models import EmailAddress
 
     user = request.user
+    if is_hr_only(user):
+        return redirect('jobs:hr_dashboard')
     try:
         profile = user.profile
         if profile.has_completed_registration:

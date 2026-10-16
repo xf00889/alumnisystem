@@ -7,6 +7,7 @@ from django.core.files.base import ContentFile
 from django.shortcuts import redirect
 from allauth.socialaccount.models import SocialLogin
 from allauth.core.exceptions import ImmediateHttpResponse
+from jobs.hr_access import is_hr_only
 import requests
 import logging
 
@@ -47,6 +48,11 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator:
             return reverse('core:admin_dashboard')
         
+        # HR accounts are provisioned by administration, not through the
+        # alumni registrar. They must never be forced to claim alumni details.
+        if is_hr_only(request.user):
+            return reverse('jobs:hr_dashboard')
+
         # Check if user has completed post-registration
         try:
             profile = request.user.profile
@@ -200,6 +206,8 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         """
         Redirect SSO signups to post-registration page to complete profile.
         """
+        if is_hr_only(request.user):
+            return reverse('jobs:hr_dashboard')
         try:
             return reverse('accounts:post_registration')
         except Exception as e:
@@ -221,6 +229,9 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                 if hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator:
                     return reverse('core:admin_dashboard')
                 
+                if is_hr_only(request.user):
+                    return reverse('jobs:hr_dashboard')
+
                 # Check if user has completed post-registration
                 try:
                     profile = request.user.profile
