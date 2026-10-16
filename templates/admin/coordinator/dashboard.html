@@ -4,33 +4,48 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/admin/coordinator-workspace.css' %}">{% endblock %}
 {% block content %}
 <main class="coordinator-dashboard" aria-label="Alumni coordinator analytics">
-  <header class="coordinator-hero"><p>ALUMNI AFFAIRS / COORDINATOR</p><h1>Coordinator Overview</h1><p>Manage your assigned campuses and alumni affairs.</p></header>
+  <header class="coordinator-hero admin-page-header">
+    <div>
+      <p class="admin-page-header__eyebrow">ALUMNI AFFAIRS / COORDINATOR</p>
+      <h1 class="admin-page-header__title">Coordinator Overview</h1>
+      <p class="admin-page-header__subtitle">Alumni registrations, graduation batches and programs across your assigned campuses.</p>
+    </div>
+  </header>
   <div class="coordinator-campus-pills"><strong>Assigned campuses</strong>{% for campus in assigned_campuses %}<span>{{ campus }}</span>{% empty %}<span>No campuses assigned. Contact your administrator.</span>{% endfor %}</div>
   <section class="coordinator-stats" aria-label="Coordinator statistics">
-   <div><small>Assigned-campus alumni</small><strong>{{ total_alumni }}</strong></div>
-   <div><small>Verified alumni</small><strong>{{ verified_alumni }}</strong></div>
-   <div><small>Active mentors (campus)</small><strong>{{ mentors_count }}</strong></div>
-   <div><small>Alumni groups (network)</small><strong>{{ groups_count }}</strong></div>
+    <div><small>Assigned-campus alumni</small><strong>{{ total_alumni }}</strong></div>
+    <div><small>Verified alumni</small><strong>{{ verified_alumni }}</strong></div>
+    <div><small>Active mentors (assigned campuses)</small><strong>{{ mentors_count }}</strong></div>
+    <div><small>Alumni groups (whole network)</small><strong>{{ groups_count }}</strong></div>
   </section>
-  <div class="coordinator-chart-grid">
-   <section class="coordinator-panel"><h2>Alumni by assigned campus</h2><div class="coordinator-chart-container"><canvas id="coordinatorCampusChart" role="img" aria-label="Alumni per campus"></canvas></div></section>
-   <section class="coordinator-panel"><h2>Network content overview</h2><div class="coordinator-chart-container"><canvas id="coordinatorActivityChart" role="img" aria-label="Announcements, events, campaigns and groups"></canvas></div></section>
+  <h2 class="coordinator-section-heading">Assigned-campus insights</h2>
+  <div class="coordinator-chart-grid" aria-label="Campus-scoped alumni analytics">
+    <section class="coordinator-panel"><h3>Alumni by college</h3><p class="coordinator-chart-description">Top colleges represented in your assigned campuses</p><div class="coordinator-chart-container"><canvas id="coordinatorCollegeChart" aria-label="College distribution chart" role="img"></canvas></div></section>
+    <section class="coordinator-panel"><h3>Graduation batches</h3><p class="coordinator-chart-description">Most recent 10 graduation years with registered alumni</p><div class="coordinator-chart-container"><canvas id="coordinatorBatchChart" aria-label="Graduation year distribution chart" role="img"></canvas></div></section>
+    <section class="coordinator-panel"><h3>New alumni profiles</h3><p class="coordinator-chart-description">Alumni profiles created during the last six calendar months</p><div class="coordinator-chart-container"><canvas id="coordinatorRegistrationChart" aria-label="Monthly new alumni profiles chart" role="img"></canvas></div></section>
+    <section class="coordinator-panel"><h3>Employment status</h3><p class="coordinator-chart-description">Self-reported employment information</p><div class="coordinator-chart-container"><canvas id="coordinatorEmploymentChart" aria-label="Employment status chart" role="img"></canvas></div></section>
+    <section class="coordinator-panel"><h3>Alumni by assigned campus</h3><p class="coordinator-chart-description">Only campuses assigned to your coordinator account</p><div class="coordinator-chart-container"><canvas id="coordinatorCampusChart" aria-label="Alumni per assigned campus chart" role="img"></canvas></div></section>
+    <section class="coordinator-panel"><h3>Network-wide activities</h3><p class="coordinator-chart-description">Whole alumni network; not restricted to assigned campuses</p><div class="coordinator-chart-container"><canvas id="coordinatorActivityChart" aria-label="Network-wide announcements, events, campaigns and groups chart" role="img"></canvas></div></section>
   </div>
   <div class="coordinator-chart-grid coordinator-tables">
-   <section class="coordinator-panel"><div class="coordinator-panel-title"><h2>Recent campus alumni</h2><a href="{% url 'alumni_directory:alumni_management' %}">View alumni</a></div><ul>{% for person in recent_alumni %}<li>{{ person.user.get_full_name|default:person.user.username }} <small>{{ person.get_campus_display }}</small></li>{% empty %}<li>No alumni assigned to your campuses yet.</li>{% endfor %}</ul></section>
-   <section class="coordinator-panel"><h2>Manage alumni affairs</h2><div class="coordinator-links">
-    <a href="{% url 'alumni_directory:alumni_management' %}">Alumni management</a>
-    <a href="{% url 'alumni_groups:admin_group_directory' %}">Alumni groups</a>
-    <a href="{% url 'location_tracking:map' %}">Location tracking</a>
-    <a href="{% url 'accounts:admin_mentor_list' %}">Mentor list</a>
-    <a href="{% url 'announcements:announcement-list' %}">Announcements</a>
-    <a href="{% url 'events:event_list' %}">Events</a>
-    <a href="{% url 'donations:manage_campaigns' %}">Donations</a>
-    <a href="{% url 'accounts:staff_profile' %}">My profile</a>
-   </div></section>
+    <section class="coordinator-panel"><div class="coordinator-panel-title"><h3>Recent campus alumni</h3><a href="{% url 'alumni_directory:alumni_management' %}">View alumni</a></div><ul>{% for person in recent_alumni %}<li>{{ person.user.get_full_name|default:person.user.username }} <small>{{ person.get_campus_display }}</small></li>{% empty %}<li>No alumni assigned to your campuses yet.</li>{% endfor %}</ul></section>
+    <section class="coordinator-panel"><h3>Manage alumni affairs</h3><div class="coordinator-links">
+      <a href="{% url 'alumni_directory:alumni_management' %}">Alumni management</a>
+      <a href="{% url 'alumni_groups:admin_group_directory' %}">Alumni groups</a>
+      <a href="{% url 'location_tracking:map' %}">Location tracking</a>
+      <a href="{% url 'accounts:admin_mentor_list' %}">Mentor list</a>
+      <a href="{% url 'announcements:announcement-list' %}">Announcements</a>
+      <a href="{% url 'events:event_list' %}">Events</a>
+      <a href="{% url 'donations:manage_campaigns' %}">Donations</a>
+      <a href="{% url 'accounts:staff_profile' %}">My profile</a>
+    </div></section>
   </div>
 </main>
 {{ campus_chart|json_script:'coordinator-campus-data' }}
 {{ activity_chart|json_script:'coordinator-activity-data' }}
+{{ college_chart|json_script:'coordinator-college-data' }}
+{{ batch_chart|json_script:'coordinator-batch-data' }}
+{{ registration_chart|json_script:'coordinator-registration-data' }}
+{{ employment_chart|json_script:'coordinator-employment-data' }}
 <script src="{% static 'js/admin/workspace-analytics.js' %}" defer></script>
 {% endblock %}

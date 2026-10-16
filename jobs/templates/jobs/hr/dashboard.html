@@ -2,12 +2,34 @@
 {% load static %}
 {% block title %}HR Overview | NORSU Alumni{% endblock %}
 {% block content %}
-<section class="hr-hero"><p class="hr-eyebrow">CAREER SERVICES / HR</p><div class="hr-hero-row"><div><h1>HR Overview</h1><p>Review internal applications and manage alumni career opportunities.</p></div><a class="btn btn-light" href="{% url 'jobs:post_job' %}"><i class="fas fa-plus me-2"></i>Post a Job</a></div></section>
-<section class="hr-metrics" aria-label="Career overview"><div><small>Active jobs</small><strong>{{ active_jobs }}</strong></div><div><small>Portal application jobs</small><strong>{{ internal_jobs }}</strong></div><div><small>Applications received</small><strong>{{ submitted_applications }}</strong></div><div><small>Pending review</small><strong>{{ pending_applications }}</strong></div></section>
-<div class="hr-dashboard-grid"><section class="hr-panel"><div class="hr-panel-heading"><h2>Latest job postings</h2><a href="{% url 'jobs:manage_jobs' %}">View all jobs <i class="fas fa-arrow-right"></i></a></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Job</th><th>Type</th><th>Status</th></tr></thead><tbody>{% for job in latest_jobs %}<tr><td><a href="{% url 'jobs:admin_job_details' job.slug %}">{{ job.job_title }}</a><small>{{ job.company_name }}</small></td><td>{{ job.get_source_type_display }}</td><td>{% if job.is_active %}Active{% else %}Inactive{% endif %}</td></tr>{% empty %}<tr><td colspan="3">No jobs posted yet.</td></tr>{% endfor %}</tbody></table></div></section>
-<section class="hr-panel"><div class="hr-panel-heading"><h2>Recent portal applications</h2><span>{{ reviewed_applications }} reviewed</span></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Applicant</th><th>Position</th><th>Status</th></tr></thead><tbody>{% for application in recent_applications %}<tr><td>{{ application.applicant.get_full_name|default:application.applicant.username }}</td><td><a href="{% url 'jobs:manage_applications' application.job.slug %}">{{ application.job.job_title }}</a></td><td>{{ application.get_status_display }}</td></tr>{% empty %}<tr><td colspan="3">No applications received yet.</td></tr>{% endfor %}</tbody></table></div></section></div>
-<section class="hr-panel hr-trend"><div class="hr-panel-heading"><h2>Career activity and sources</h2><span>Last six months</span></div><div class="hr-chart-grid"><div><h3>Applications by month</h3><canvas id="hrApplicationChart" height="150" role="img" aria-label="Monthly internal job applications"></canvas></div><div><h3>Job source distribution</h3><canvas id="hrJobSourcesChart" height="150" role="img" aria-label="Job sources"></canvas></div></div><details class="hr-chart-data"><summary>View data as text</summary><div class="hr-trend-list">{% for point in application_trend %}<div><span>{{ point.month|date:'M Y' }}</span><strong>{{ point.total }}</strong></div>{% empty %}<p>No application activity in this period.</p>{% endfor %}</div></details></section>
+<header class="hr-hero admin-page-header">
+  <div class="hr-hero-row">
+    <div><p class="admin-page-header__eyebrow">CAREER SERVICES / HR</p><h1 class="admin-page-header__title">HR Overview</h1><p class="admin-page-header__subtitle">Career opportunities, portal applications and recruitment activity.</p></div>
+    <a class="btn btn-light hr-hero-action" href="{% url 'jobs:post_job' %}"><i class="fas fa-plus me-2" aria-hidden="true"></i>Post a Job</a>
+  </div>
+</header>
+<section class="hr-metrics" aria-label="Career overview">
+  <div><small>Active jobs</small><strong>{{ active_jobs }}</strong></div>
+  <div><small>Portal application jobs</small><strong>{{ internal_jobs }}</strong></div>
+  <div><small>Applications received</small><strong>{{ submitted_applications }}</strong></div>
+  <div><small>Pending review</small><strong>{{ pending_applications }}</strong></div>
+</section>
+<h2 class="hr-section-heading">Career analytics</h2>
+<div class="hr-analytics-grid" aria-label="Job and application analytics">
+  <section class="hr-panel"><div class="hr-panel-heading"><div><h3>Application trend</h3><p>Portal submissions over the last six calendar months</p></div></div><div class="hr-chart-frame"><canvas id="hrApplicationChart" role="img" aria-label="Monthly portal application chart"></canvas></div></section>
+  <section class="hr-panel"><div class="hr-panel-heading"><div><h3>Application status</h3><p>Pending, shortlisted, interviewed and final outcomes</p></div></div><div class="hr-chart-frame"><canvas id="hrApplicationStatusChart" role="img" aria-label="Portal application status chart"></canvas></div></section>
+  <section class="hr-panel"><div class="hr-panel-heading"><div><h3>Most applied-to positions</h3><p>Top eight positions receiving portal applications</p></div></div><div class="hr-chart-frame"><canvas id="hrTopPositionsChart" role="img" aria-label="Applications by job position chart"></canvas></div></section>
+  <section class="hr-panel"><div class="hr-panel-heading"><div><h3>Active jobs by type</h3><p>Current active job listings by employment type</p></div></div><div class="hr-chart-frame"><canvas id="hrJobTypesChart" role="img" aria-label="Active jobs by job type chart"></canvas></div></section>
+  <section class="hr-panel"><div class="hr-panel-heading"><div><h3>Application channels</h3><p>Portal-enabled versus external-only job listings</p></div></div><div class="hr-chart-frame"><canvas id="hrJobSourcesChart" role="img" aria-label="Jobs accepting portal applications chart"></canvas></div></section>
+</div>
+<div class="hr-dashboard-grid hr-table-grid">
+  <section class="hr-panel"><div class="hr-panel-heading"><h2>Latest job postings</h2><a href="{% url 'jobs:manage_jobs' %}">View all jobs <i class="fas fa-arrow-right" aria-hidden="true"></i></a></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Job</th><th>Type</th><th>Status</th></tr></thead><tbody>{% for job in latest_jobs %}<tr><td><a href="{% url 'jobs:admin_job_details' job.slug %}">{{ job.job_title }}</a><small>{{ job.company_name }}</small></td><td>{{ job.get_source_type_display }}</td><td>{% if job.is_active %}Active{% else %}Inactive{% endif %}</td></tr>{% empty %}<tr><td colspan="3">No jobs posted yet.</td></tr>{% endfor %}</tbody></table></div></section>
+  <section class="hr-panel"><div class="hr-panel-heading"><h2>Recent portal applications</h2><span>{{ reviewed_applications }} reviewed</span></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Applicant</th><th>Position</th><th>Status</th></tr></thead><tbody>{% for application in recent_applications %}<tr><td>{{ application.applicant.get_full_name|default:application.applicant.username }}</td><td><a href="{% url 'jobs:manage_applications' application.job.slug %}">{{ application.job.job_title }}</a></td><td>{{ application.get_status_display }}</td></tr>{% empty %}<tr><td colspan="3">No applications received yet.</td></tr>{% endfor %}</tbody></table></div></section>
+</div>
 {{ trend_chart|json_script:'hr-applications-data' }}
 {{ jobs_chart|json_script:'hr-sources-data' }}
+{{ status_chart|json_script:'hr-status-data' }}
+{{ positions_chart|json_script:'hr-positions-data' }}
+{{ types_chart|json_script:'hr-types-data' }}
 {% endblock %}
 {% block extra_js %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script><script src="{% static 'js/admin/workspace-analytics.js' %}" defer></script>{% endblock %}

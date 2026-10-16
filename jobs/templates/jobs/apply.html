@@ -62,7 +62,15 @@
                         </div>
                         <div class="form-section" aria-labelledby="job-application-resume">
                             <h2 id="job-application-resume" class="section-title">Resume <span class="job-application-required">Required</span></h2>
-                            <div class="file-upload-wrapper">{{ form.resume|as_crispy_field }}</div>
+                            <div class="job-upload-field">
+                                <label for="{{ form.resume.id_for_label }}" class="job-upload-label job-upload-label--sr">{{ form.resume.label }}<span aria-hidden="true">*</span></label>
+                                <div class="job-file-picker">
+                                    {{ form.resume }}
+                                    <label for="{{ form.resume.id_for_label }}" class="job-file-picker__button"><i class="fas fa-upload" aria-hidden="true"></i>Choose file</label>
+                                    <span class="job-file-picker__name" aria-live="polite">No file selected</span>
+                                </div>
+                                {{ form.resume.errors }}
+                            </div>
                             <p class="file-upload-info"><i class="fas fa-circle-info" aria-hidden="true"></i>PDF, DOC or DOCX · Up to 5 MB</p>
                         </div>
                     </div>
@@ -73,14 +81,31 @@
                             <h2 id="job-application-documents" class="section-title">Required documents</h2>
                             {% for field in form %}
                             {% if field.name|slice:":9" == "document_" %}
-                            <div class="job-application-document-field">{{ field|as_crispy_field }}</div>
+                            <div class="job-application-document-field job-upload-field">
+                                <label class="job-upload-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span aria-hidden="true">*</span>{% endif %}</label>
+                                <div class="job-file-picker">
+                                    {{ field }}
+                                    <label for="{{ field.id_for_label }}" class="job-file-picker__button"><i class="fas fa-upload" aria-hidden="true"></i>Choose file</label>
+                                    <span class="job-file-picker__name" aria-live="polite">No file selected</span>
+                                </div>
+                                {% if field.help_text %}<p class="job-file-picker__help">{{ field.help_text }}</p>{% endif %}
+                                {{ field.errors }}
+                            </div>
                             {% endif %}
                             {% endfor %}
                         </div>
                         {% endif %}
                         <div class="form-section" aria-labelledby="job-application-supporting">
                             <h2 id="job-application-supporting" class="section-title">Additional documents <span class="job-application-optional">Optional</span></h2>
-                            <div class="file-upload-wrapper">{{ form.additional_documents|as_crispy_field }}</div>
+                            <div class="job-upload-field">
+                                <label for="{{ form.additional_documents.id_for_label }}" class="job-upload-label job-upload-label--sr">{{ form.additional_documents.label }}</label>
+                                <div class="job-file-picker">
+                                    {{ form.additional_documents }}
+                                    <label for="{{ form.additional_documents.id_for_label }}" class="job-file-picker__button"><i class="fas fa-upload" aria-hidden="true"></i>Choose file</label>
+                                    <span class="job-file-picker__name" aria-live="polite">No file selected</span>
+                                </div>
+                                {{ form.additional_documents.errors }}
+                            </div>
                             <p class="file-upload-info"><i class="fas fa-circle-info" aria-hidden="true"></i>Additional supporting file · Up to 10 MB</p>
                         </div>
                     </div>
@@ -100,4 +125,5 @@
         </section>
     </div>
 </div>
+<script src="{% static 'js/alumni/job-application-upload.js' %}" defer></script>
 {% endblock %}
