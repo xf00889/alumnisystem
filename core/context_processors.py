@@ -46,6 +46,8 @@ def user_role_context(request):
         # Public tracer pages retain public chrome for unauthenticated visitors.
         'tracer_study_page_base': 'base_landingpage.html',
         'has_mentee_dashboard': False,
+        'staff_account_base': 'base.html',
+        'hr_workspace_base': 'base.html',
         'has_mentor_dashboard': False,
     }
     
@@ -56,6 +58,11 @@ def user_role_context(request):
         if hasattr(request.user, 'profile'):
             context['is_alumni_coordinator'] = request.user.profile.is_alumni_coordinator
             is_hr_user = getattr(request.user.profile, 'is_hr', False)
+
+        from jobs.hr_access import is_hr_only
+        if is_hr_only(request.user):
+            context['hr_workspace_base'] = 'jobs/hr/base.html'
+            context['staff_account_base'] = 'jobs/hr/base.html'
 
         # Only regular alumni receive the separate alumni design system.
         # Preserve elevated-role pages and all backend permissions.

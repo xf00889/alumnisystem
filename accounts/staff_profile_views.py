@@ -21,6 +21,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import redirect, render
 
+from jobs.hr_access import is_hr_only
 from alumni_directory.models import Alumni
 from .forms import UserUpdateForm
 
@@ -33,7 +34,7 @@ def has_staff_workspace(user):
     if user.is_superuser or user.is_staff:
         return True
     profile = getattr(user, 'profile', None)
-    return bool(profile and profile.is_alumni_coordinator)
+    return bool(profile and (profile.is_alumni_coordinator or is_hr_only(user)))
 
 
 def has_verified_alumni(user):

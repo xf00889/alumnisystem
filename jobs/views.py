@@ -4,7 +4,7 @@ from django.core.paginator import Paginator
 from django.core.cache import cache
 from django.contrib import messages
 from django.db.models import Q, Count
-from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, Http404
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.db import transaction
@@ -432,16 +432,17 @@ def check_job_application_eligibility(request, job_id):
     try:
         job = get_object_or_404(JobPosting, id=job_id, is_active=True)
         
-        # Check source_type restrictions
-        if job.source_type == 'INTERNAL':
-            if not request.user.is_authenticated:
-                return JsonResponse({
-                    'success': False,
-                    'eligible': False,
-                    'message': 'Please log in or register to apply for this job.',
-                    'redirect_url': '/accounts/login/'
-                })
-        
+        # Never claim eligibility for externally managed positions.
+        if not job.accepts_internal_applications:
+            return JsonResponse({
+                'success': True, 'eligible': False,
+                'message': 'Applications are managed by the external employer.',
+            })
+        if JobApplication.objects.filter(job=job, applicant=request.user).exists():
+            return JsonResponse({
+                'success': True, 'eligible': False,
+                'message': 'You have already applied for this position.',
+            })
         return JsonResponse({
             'success': True,
             'eligible': True,
@@ -945,14 +946,14 @@ def manage_jobs(request):
     stats = {
         'active_jobs': jobs.filter(is_active=True).count(),
         'internal_jobs': jobs.filter(source_type='INTERNAL').count(),
-        'total_applications': JobApplication.objects.count(),
-        'pending_applications': JobApplication.objects.filter(status='PENDING').count(),
-        'jobs_with_applications': jobs.filter(applications__isnull=False).distinct().count(),
+        'total_applications': JobApplication.objects.filter(job__accepts_internal_applications=True).count(),
+        'pending_applications': JobApplication.objects.filter(job__accepts_internal_applications=True, status='PENDING').count(),
+        'jobs_with_applications': jobs.filter(accepts_internal_applications=True, applications__isnull=False).distinct().count(),
     }
 
     application_filter = request.GET.get('applications', '')
     if application_filter == 'with':
-        jobs = jobs.filter(applications__isnull=False).distinct()
+        jobs = jobs.filter(accepts_internal_applications=True, applications__isnull=False).distinct()
     else:
         application_filter = ''
 
@@ -1093,7 +1094,7 @@ def apply_for_job(request, slug):
         return redirect('jobs:job_detail', slug=slug)
     
     # For internal jobs, show the application form
-    if job.source_type == 'INTERNAL' or job.accepts_internal_applications:
+    if job.accepts_internal_applications:
         if request.method == 'POST':
             form = JobApplicationForm(request.POST, request.FILES, job=job)
             if form.is_valid():
@@ -1141,7 +1142,9 @@ def apply_for_job(request, slug):
 @user_passes_test(is_hr_or_admin)
 def manage_applications(request, slug):
     job = get_object_or_404(JobPosting, slug=slug)
-    applications = job.applications.all()
+    if not job.accepts_internal_applications:
+        raise Http404('This position does not accept applications through NORSU.')
+    applications = job.applications.select_related('applicant')
     
     # Filter by status
     status = request.GET.get('status')
@@ -1174,7 +1177,7 @@ def manage_applications(request, slug):
 @user_passes_test(is_hr_or_admin)
 def update_application_status(request, application_id):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        application = get_object_or_404(JobApplication, id=application_id)
+        application = get_object_or_404(JobApplication, id=application_id, job__accepts_internal_applications=True)
         data = json.loads(request.body)
         status = data.get('status')
         
@@ -1188,7 +1191,7 @@ def update_application_status(request, application_id):
 @login_required
 @user_passes_test(is_hr_or_admin)
 def application_details(request, application_id):
-    application = get_object_or_404(JobApplication, id=application_id)
+    application = get_object_or_404(JobApplication, id=application_id, job__accepts_internal_applications=True)
     context = {
         'application': application,
         'status_choices': JobApplication.STATUS_CHOICES,
@@ -1200,7 +1203,7 @@ def application_details(request, application_id):
 @user_passes_test(is_hr_or_admin)
 def add_application_note(request, application_id):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        application = get_object_or_404(JobApplication, id=application_id)
+        application = get_object_or_404(JobApplication, id=application_id, job__accepts_internal_applications=True)
         data = json.loads(request.body)
         note = data.get('note')
         
@@ -1230,7 +1233,7 @@ def send_application_email(request, application_id):
         }, status=405)
 
     try:
-        application = get_object_or_404(JobApplication, id=application_id)
+        application = get_object_or_404(JobApplication, id=application_id, job__accepts_internal_applications=True)
         data = json.loads(request.body)
         subject = data.get('subject')
         message = data.get('message')
@@ -1295,7 +1298,7 @@ def export_applicants(request, job_id):
     """Export job applicants to Excel file"""
     from core.export_utils import LogoHeaderService
     
-    job = get_object_or_404(JobPosting, id=job_id)
+    job = get_object_or_404(JobPosting, id=job_id, accepts_internal_applications=True)
     from core.report_periods import parse_report_period, export_download_name
     try:
         period = parse_report_period(request.GET)

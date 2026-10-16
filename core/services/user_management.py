@@ -397,6 +397,16 @@ class RoleAssignmentService:
             if role_name in ['admin', 'hr'] and not (assigned_by.is_superuser or assigned_by.is_staff):
                 return (False, "Insufficient permissions to assign this role")
             
+            # HR is an explicitly limited, separate role. Do not silently
+            # convert an administrator into a supposedly restricted HR user,
+            # or add staff privileges to an HR-only identity.
+            profile = getattr(user, 'profile', None)
+            if role_name == 'hr' and (user.is_staff or user.is_superuser or
+                                      (profile and profile.is_alumni_coordinator)):
+                return (False, 'Create a separate non-staff HR account instead of combining elevated roles.')
+            if role_name in ('admin', 'superuser', 'alumni_coordinator') and profile and profile.is_hr:
+                return (False, 'Revoke the HR role before assigning broader administrator permissions.')
+
             # Assign the role
             field_info = RoleAssignmentService.ROLE_FIELDS[role_name]
             

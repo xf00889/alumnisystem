@@ -51,6 +51,9 @@ def home(request):
         # Ensure user has a profile
         from accounts.models import Profile
         profile, created = Profile.objects.get_or_create(user=request.user)
+        from jobs.hr_access import is_hr_only
+        if is_hr_only(request.user):
+            return redirect('jobs:hr_dashboard')
         
         # Check if user has completed registration
         if not profile.has_completed_registration:

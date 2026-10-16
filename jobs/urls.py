@@ -2,10 +2,12 @@ from django.urls import path
 from . import views
 from . import views_scraper
 from . import admin_directory_views
+from . import hr_views
 
 app_name = 'jobs'
 
 urlpatterns = [
+    path('hr/dashboard/', hr_views.hr_dashboard, name='hr_dashboard'),
     path('administration/board/', admin_directory_views.admin_job_board, name='admin_job_board'),
     path('administration/job/<slug:slug>/', admin_directory_views.admin_job_details, name='admin_job_details'),
     path('', views.job_list, name='job_list'),

@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends hr_workspace_base|default:'base.html' %}
 {% load static jobs_extras %}
 {% block title %}Manage Jobs | NORSU Alumni{% endblock %}
 
@@ -65,12 +65,12 @@
                         <td>{{ job.get_job_type_display }}<div class="staff-directory-muted">{{ job.get_source_type_display }}</div></td>
                         <td>{% if job.is_active %}<span class="staff-status staff-status--active">Active</span>{% else %}<span class="staff-status staff-status--inactive">Inactive</span>{% endif %}</td>
                         <td class="staff-directory-date">{{ job.posted_date|date:'M d, Y' }}</td>
-                        <td><span class="staff-jobs-applications-count{% if job.application_count %} has-applicants{% endif %}" aria-label="{{ job.application_count }} applications">{{ job.application_count }}</span></td>
+                        <td>{% if job.accepts_internal_applications %}<span class="staff-jobs-applications-count{% if job.application_count %} has-applicants{% endif %}" aria-label="{{ job.application_count }} applications">{{ job.application_count }}</span>{% else %}<span class="staff-directory-muted">External site</span>{% endif %}</td>
                         <td class="staff-directory-row-actions">
                             <div class="staff-jobs-row-actions">
                                 <a class="btn btn-primary btn-sm" href="{% url 'jobs:admin_job_details' job.slug %}" aria-label="View {{ job.job_title }}"><i class="fas fa-eye" aria-hidden="true"></i> View</a>
                                 <a class="btn btn-outline-secondary btn-sm" href="{% url 'jobs:edit_job' job.slug %}" aria-label="Edit {{ job.job_title }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit</a>
-                                <a class="btn staff-jobs-applications-action btn-sm" href="{% url 'jobs:manage_applications' job.slug %}" aria-label="Manage applications for {{ job.job_title }}"><i class="fas fa-users" aria-hidden="true"></i> Manage Applications {% if job.application_count %}<span class="staff-jobs-action-count">{{ job.application_count }}</span>{% endif %}</a>
+                                {% if job.accepts_internal_applications %}<a class="btn staff-jobs-applications-action btn-sm" href="{% url 'jobs:manage_applications' job.slug %}" aria-label="Manage applications for {{ job.job_title }}"><i class="fas fa-users" aria-hidden="true"></i> Manage Applications {% if job.application_count %}<span class="staff-jobs-action-count">{{ job.application_count }}</span>{% endif %}</a>{% endif %}
                                 <button type="button" class="btn btn-outline-danger btn-sm" data-delete-job-url="{% url 'jobs:delete_job' job.slug %}" data-job-title="{{ job.job_title }}" aria-label="Delete {{ job.job_title }}"><i class="fas fa-trash-alt" aria-hidden="true"></i> Delete</button>
                             </div>
                         </td>

@@ -22,7 +22,7 @@ def is_hr_or_admin(user):
     if user.is_superuser or user.is_staff:
         return True
     try:
-        return user.profile.is_hr or user.profile.is_alumni_coordinator
+        return user.profile.is_alumni_coordinator
     except:
         return False
 
