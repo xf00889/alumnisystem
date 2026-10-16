@@ -940,26 +940,30 @@ def job_detail(request, slug):
 @login_required
 @user_passes_test(is_hr_or_admin)
 def manage_jobs(request):
-    jobs = JobPosting.objects.exclude(slug="")
-    
-    # Get statistics
+    # Compute application counts in the listing query, not once for each row.
+    jobs = JobPosting.objects.exclude(slug='')
     stats = {
         'active_jobs': jobs.filter(is_active=True).count(),
         'internal_jobs': jobs.filter(source_type='INTERNAL').count(),
         'total_applications': JobApplication.objects.count(),
         'pending_applications': JobApplication.objects.filter(status='PENDING').count(),
+        'jobs_with_applications': jobs.filter(applications__isnull=False).distinct().count(),
     }
-    
-    # Pagination
-    paginator = Paginator(jobs, 10)
-    page = request.GET.get('page')
-    jobs = paginator.get_page(page)
-    
-    context = {
-        'jobs': jobs,
+
+    application_filter = request.GET.get('applications', '')
+    if application_filter == 'with':
+        jobs = jobs.filter(applications__isnull=False).distinct()
+    else:
+        application_filter = ''
+
+    jobs = jobs.annotate(application_count=Count('applications', distinct=True))
+    paginator = Paginator(jobs.order_by('-posted_date', '-pk'), 20)
+    jobs_page = paginator.get_page(request.GET.get('page'))
+    return render(request, 'jobs/manage_jobs.html', {
+        'jobs': jobs_page,
         'stats': stats,
-    }
-    return render(request, 'jobs/manage_jobs.html', context)
+        'application_filter': application_filter,
+    })
 
 @login_required
 @user_passes_test(is_hr_or_admin)

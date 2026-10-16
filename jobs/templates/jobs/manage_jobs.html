@@ -1,265 +1,109 @@
 {% extends 'base.html' %}
-{% load static %}
-{% load jobs_extras %}
-
-{% block title %}Manage Jobs{% endblock %}
-
-
+{% load static jobs_extras %}
+{% block title %}Manage Jobs | NORSU Alumni{% endblock %}
 
 {% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script>document.documentElement.classList.add("fe-page--app-jobs-jobs-manage-jobs-html");</script>
-<link rel="stylesheet" href="{% static 'css/modules/jobs-app.css' %}">
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/admin/group-directory.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Header Section -->
-    <div class="directory-header admin-page-header admin-page-header--action-row">
+<div class="container-fluid staff-group-directory staff-group-directory--manage-jobs">
+    <header class="admin-page-header admin-page-header--action-row">
         <div class="admin-page-header__content">
-        <p class="admin-page-header__eyebrow">ADMINISTRATION / CAREER SERVICES</p>
-        <h1 class="directory-title admin-page-header__title">Manage Jobs</h1>
-        <p class="directory-subtitle admin-page-header__subtitle">Oversee and manage all job postings</p>
+            <p class="admin-page-header__eyebrow">ADMINISTRATION / CAREER SERVICES</p>
+            <h1 class="admin-page-header__title">Manage Jobs</h1>
+            <p class="admin-page-header__subtitle">Review job postings and manage applications from one workspace.</p>
         </div>
-        <div class="header-actions admin-page-header__actions">
-            <a href="{% url 'jobs:post_job' %}" class="btn-post-job">
-                <i class="fas fa-plus"></i>
-                <span>Post New Job</span>
-            </a>
+        <div class="admin-page-header__actions">
+            <a class="btn btn-light" href="{% url 'jobs:post_job' %}"><i class="fas fa-plus" aria-hidden="true"></i> Post New Job</a>
         </div>
-    </div>
+    </header>
 
-    <!-- Statistics Section -->
-    <div class="stats-section">
-        <div class="stat-card primary">
-            <span class="stat-number">{{ stats.active_jobs }}</span>
-            <span class="stat-label">Active Jobs</span>
-        </div>
-        <div class="stat-card success">
-            <span class="stat-number">{{ stats.internal_jobs }}</span>
-            <span class="stat-label">Internal Jobs</span>
-        </div>
-        <div class="stat-card info">
-            <span class="stat-number">{{ stats.total_applications }}</span>
-            <span class="stat-label">Total Applications</span>
-        </div>
-        <div class="stat-card warning">
-            <span class="stat-number">{{ stats.pending_applications }}</span>
-            <span class="stat-label">Pending Applications</span>
-        </div>
-    </div>
+    <section class="staff-jobs-metrics" aria-label="Job management overview">
+        <div class="staff-jobs-metric"><strong>{{ stats.active_jobs }}</strong><span>Active jobs</span></div>
+        <div class="staff-jobs-metric"><strong>{{ stats.internal_jobs }}</strong><span>Internal jobs</span></div>
+        <div class="staff-jobs-metric"><strong>{{ stats.total_applications }}</strong><span>Total applications</span></div>
+        <div class="staff-jobs-metric"><strong>{{ stats.pending_applications }}</strong><span>Pending applications</span></div>
+    </section>
 
-    <!-- Jobs Grid -->
-    {% if jobs %}
-    <div class="jobs-grid">
-        {% for job in jobs %}
-        <div class="job-card">
-            <div class="job-header">
-                <a href="{% url 'jobs:job_detail' job.slug %}" class="job-title">
-                    {{ job.job_title|format_job_title }}
-                </a>
-                <div class="company-name">
-                    <i class="fas fa-building"></i>
-                    <span>{{ job.company_name }}</span>
-                </div>
+    <nav class="staff-jobs-view-switch" aria-label="Job application views">
+        <a class="staff-jobs-view-link{% if not application_filter %} is-active{% endif %}" href="{% url 'jobs:manage_jobs' %}" {% if not application_filter %}aria-current="page"{% endif %}>
+            <i class="fas fa-list" aria-hidden="true"></i> All Jobs
+        </a>
+        <a class="staff-jobs-view-link{% if application_filter == 'with' %} is-active{% endif %}" href="{% url 'jobs:manage_jobs' %}?applications=with" {% if application_filter == 'with' %}aria-current="page"{% endif %}>
+            <i class="fas fa-users" aria-hidden="true"></i> With Applications
+            <span class="staff-jobs-view-count" aria-label="{{ stats.jobs_with_applications }} jobs with applications">{{ stats.jobs_with_applications }}</span>
+        </a>
+    </nav>
+
+    <section class="staff-directory-results" aria-labelledby="staffJobsHeading">
+        <div class="staff-directory-results-heading">
+            <div>
+                <h2 id="staffJobsHeading">{% if application_filter == 'with' %}Jobs with applications{% else %}Job postings{% endif %}</h2>
+                <p>{% if application_filter == 'with' %}Postings with submitted applications, including inactive jobs.{% else %}Manage published and inactive vacancies in one table.{% endif %}</p>
             </div>
-            
-            <div class="job-details">
-                <div class="detail-row">
-                    <i class="fas fa-briefcase"></i>
-                    <span>{{ job.get_job_type_display }}</span>
-                </div>
-                <div class="detail-row">
-                    <i class="far fa-calendar"></i>
-                    <span>Posted {{ job.posted_date|date:"M d, Y" }}</span>
-                </div>
-                <div class="detail-row">
-                    <i class="fas fa-users"></i>
-                    <a href="{% url 'jobs:manage_applications' job.slug %}" style="color: var(--text-secondary); text-decoration: none;">
-                        <span>{{ job.applications.count }} application{{ job.applications.count|pluralize }}</span>
-                    </a>
-                </div>
-            </div>
-            
-            <div class="job-badges">
-                <span class="badge {% if job.source_type == 'INTERNAL' %}badge-internal{% else %}badge-external{% endif %}">
-                    {{ job.get_source_type_display }}
-                </span>
-                <span class="badge {% if job.is_active %}badge-active{% else %}badge-inactive{% endif %}">
-                    {% if job.is_active %}
-                    <i class="fas fa-check-circle me-1"></i>Active
-                    {% else %}
-                    <i class="fas fa-times-circle me-1"></i>Inactive
-                    {% endif %}
-                </span>
-            </div>
-            
-            <div class="job-actions">
-                <a href="{% url 'jobs:job_detail' job.slug %}" class="btn-view-job">
-                    <i class="fas fa-eye"></i> View
-                </a>
-                <a href="{% url 'jobs:edit_job' job.slug %}" class="btn-edit-job">
-                    <i class="fas fa-edit"></i> Edit
-                </a>
-                <button type="button" class="btn-delete-job" 
-                        data-job-slug="{{ job.slug }}"
-                        data-job-title="{{ job.job_title }}"
-                        onclick="confirmDelete('{{ job.slug }}', '{{ job.job_title|escapejs }}')">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
-            </div>
+            <span class="staff-results-count">{{ jobs.paginator.count }} job{{ jobs.paginator.count|pluralize }}</span>
         </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty-state">
-        <i class="fas fa-briefcase"></i>
-        <h3 class="title">No Jobs Posted Yet</h3>
-        <p class="description">Start by posting your first job opportunity</p>
-    </div>
-    {% endif %}
-
-    {% if jobs.has_other_pages %}
-    <div class="pagination-section">
-        <nav aria-label="Job pagination">
-            <ul class="pagination">
-                {% if jobs.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page=1">
-                        &laquo;&laquo;
-                    </a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ jobs.previous_page_number }}">
-                        &laquo;
-                    </a>
-                </li>
-                {% endif %}
-
-                {% for num in jobs.paginator.page_range %}
-                    {% if jobs.number == num %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ num }}</span>
-                        </li>
-                    {% elif num > jobs.number|add:'-3' and num < jobs.number|add:'3' %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                        </li>
-                    {% endif %}
+        <div class="staff-directory-table-wrap" role="region" tabindex="0" aria-label="Job management table; scroll horizontally on narrow screens">
+            <table class="table staff-directory-table staff-jobs-table">
+                <thead><tr>
+                    <th scope="col">Job / Company</th>
+                    <th scope="col">Employment</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Posted</th>
+                    <th scope="col">Applications</th>
+                    <th scope="col">Actions</th>
+                </tr></thead>
+                <tbody>
+                    {% for job in jobs %}
+                    <tr>
+                        <td class="staff-directory-name-cell">
+                            <strong>{{ job.job_title|format_job_title }}</strong>
+                            <div class="staff-directory-muted">{{ job.company_name }}</div>
+                        </td>
+                        <td>{{ job.get_job_type_display }}<div class="staff-directory-muted">{{ job.get_source_type_display }}</div></td>
+                        <td>{% if job.is_active %}<span class="staff-status staff-status--active">Active</span>{% else %}<span class="staff-status staff-status--inactive">Inactive</span>{% endif %}</td>
+                        <td class="staff-directory-date">{{ job.posted_date|date:'M d, Y' }}</td>
+                        <td><span class="staff-jobs-applications-count{% if job.application_count %} has-applicants{% endif %}" aria-label="{{ job.application_count }} applications">{{ job.application_count }}</span></td>
+                        <td class="staff-directory-row-actions">
+                            <div class="staff-jobs-row-actions">
+                                <a class="btn btn-primary btn-sm" href="{% url 'jobs:admin_job_details' job.slug %}" aria-label="View {{ job.job_title }}"><i class="fas fa-eye" aria-hidden="true"></i> View</a>
+                                <a class="btn btn-outline-secondary btn-sm" href="{% url 'jobs:edit_job' job.slug %}" aria-label="Edit {{ job.job_title }}"><i class="fas fa-pen" aria-hidden="true"></i> Edit</a>
+                                <a class="btn staff-jobs-applications-action btn-sm" href="{% url 'jobs:manage_applications' job.slug %}" aria-label="Manage applications for {{ job.job_title }}"><i class="fas fa-users" aria-hidden="true"></i> Manage Applications {% if job.application_count %}<span class="staff-jobs-action-count">{{ job.application_count }}</span>{% endif %}</a>
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-delete-job-url="{% url 'jobs:delete_job' job.slug %}" data-job-title="{{ job.job_title }}" aria-label="Delete {{ job.job_title }}"><i class="fas fa-trash-alt" aria-hidden="true"></i> Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="staff-directory-empty">
+                        <i class="fas fa-briefcase" aria-hidden="true"></i>
+                        <strong>{% if application_filter == 'with' %}No jobs with applications{% else %}No job postings yet{% endif %}</strong>
+                        <span>{% if application_filter == 'with' %}Jobs will appear here once alumni apply through the portal.{% else %}Create your first job posting to get started.{% endif %}</span>
+                        {% if application_filter == 'with' %}<a class="btn btn-outline-secondary btn-sm" href="{% url 'jobs:manage_jobs' %}">View all jobs</a>{% else %}<a class="btn btn-primary btn-sm" href="{% url 'jobs:post_job' %}">Post a job</a>{% endif %}
+                    </td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if jobs.has_other_pages %}
+        <nav class="staff-directory-pagination-shell" aria-label="Job pages">
+            <p class="staff-directory-pagination-info">Page {{ jobs.number }} of {{ jobs.paginator.num_pages }}</p>
+            <div class="staff-directory-pagination">
+                {% if jobs.has_previous %}<a class="staff-page-link" href="?{% if application_filter %}applications=with&amp;{% endif %}page={{ jobs.previous_page_number }}" aria-label="Previous page"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>{% endif %}
+                {% for page_number in jobs.paginator.page_range %}
+                {% if page_number == jobs.number %}<span class="staff-page-link is-current" aria-current="page">{{ page_number }}</span>
+                {% elif page_number >= jobs.number|add:'-2' and page_number <= jobs.number|add:'2' %}<a class="staff-page-link" href="?{% if application_filter %}applications=with&amp;{% endif %}page={{ page_number }}">{{ page_number }}</a>{% endif %}
                 {% endfor %}
-
-                {% if jobs.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ jobs.next_page_number }}">
-                        &raquo;
-                    </a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ jobs.paginator.num_pages }}">
-                        &raquo;&raquo;
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
+                {% if jobs.has_next %}<a class="staff-page-link" href="?{% if application_filter %}applications=with&amp;{% endif %}page={{ jobs.next_page_number }}" aria-label="Next page"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>{% endif %}
+            </div>
         </nav>
-    </div>
-    {% endif %}
+        {% endif %}
+    </section>
 </div>
+{% endblock %}
 
 {% block extra_js %}
-<script>
-// Delete job functionality with SweetAlert and AJAX
-function confirmDelete(slug, jobTitle) {
-    Swal.fire({
-        title: 'Delete Job Posting',
-        html: `Are you sure you want to delete <strong>"${jobTitle}"</strong>?<br><br><small class="text-muted">This action cannot be undone.</small>`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fas fa-trash me-1"></i>Yes, delete it!',
-        cancelButtonText: '<i class="fas fa-times me-1"></i>Cancel',
-        reverseButtons: true,
-        focusCancel: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Show loading
-            Swal.fire({
-                title: 'Deleting Job Posting...',
-                text: 'Please wait while we delete the job posting.',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-            
-            // Make AJAX request to delete job
-            const deleteUrl = `/jobs/${slug}/delete/`;
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
-                              document.querySelector('input[name="csrfmiddlewaretoken"]')?.value ||
-                              getCookie('csrftoken');
-            
-            fetch(deleteUrl, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'same-origin'
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(data => {
-                        throw new Error(data.message || 'Failed to delete job posting');
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    Swal.fire({
-                        title: 'Deleted!',
-                        text: data.message || 'The job posting has been deleted.',
-                        icon: 'success',
-                        confirmButtonText: 'OK'
-                    }).then(() => {
-                        // Reload the page to reflect the changes
-                        window.location.reload();
-                    });
-                } else {
-                    throw new Error(data.message || 'Failed to delete job posting');
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    title: 'Error!',
-                    text: error.message || 'An error occurred while deleting the job posting.',
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
-            });
-        }
-    });
-}
-
-// Helper function to get CSRF token from cookies
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-</script>
-{% endblock %}
+{{ block.super }}
+<script src="{% static 'js/admin/manage-jobs.js' %}" defer></script>
 {% endblock %}
