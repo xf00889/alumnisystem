@@ -68,6 +68,18 @@ class UserCreationForm(forms.ModelForm):
         help_text='Re-enter the password to confirm'
     )
     
+    ACCOUNT_TYPE_CHOICES = (
+        ('standard', 'Standard user'),
+        ('hr', 'HR — Career Services only'),
+    )
+    account_type = forms.ChoiceField(
+        choices=ACCOUNT_TYPE_CHOICES,
+        initial='standard',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Account type',
+        help_text='HR can manage job postings and internal job applications, not the general admin dashboard.',
+    )
+
     send_welcome_email = forms.BooleanField(
         initial=True,
         required=False,

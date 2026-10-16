@@ -37,7 +37,7 @@ class UserManagementService:
     
     @staticmethod
     @transaction.atomic
-    def create_user(email, first_name, last_name, password, created_by, request=None, send_email=True):
+    def create_user(email, first_name, last_name, password, created_by, request=None, send_email=True, account_type='standard'):
         """
         Create a new user with profile
         
@@ -54,6 +54,13 @@ class UserManagementService:
             tuple: (user, profile, success, error_message)
         """
         try:
+            # The public service boundary must enforce the same limited roles
+            # as the administration form; never accept permission flags from POST.
+            if account_type not in ('standard', 'hr'):
+                return (None, None, False, 'Invalid account type')
+            if account_type == 'hr' and not (created_by and created_by.is_superuser):
+                return (None, None, False, 'Only superusers can create HR accounts')
+
             # Validate email format
             try:
                 validate_email(email)
@@ -75,7 +82,9 @@ class UserManagementService:
                 first_name=first_name,
                 last_name=last_name,
                 password=password,
-                is_active=True
+                is_active=True,
+                is_staff=False,
+                is_superuser=False,
             )
             
             # Profile is created automatically via signal
@@ -86,6 +95,14 @@ class UserManagementService:
                 # Create profile if signal failed
                 profile = Profile.objects.create(user=user)
             
+            # HR is a distinct, non-staff identity. Persist its role in the
+            # same transaction as the user so no partially provisioned user
+            # is left behind if role assignment fails.
+            if account_type == 'hr':
+                profile.is_hr = True
+                profile.is_alumni_coordinator = False
+                profile.save(update_fields=['is_hr', 'is_alumni_coordinator'])
+
             # Log audit entry
             AuditLogService.log_action(
                 user=user,
@@ -95,11 +112,22 @@ class UserManagementService:
                     'email': email,
                     'first_name': first_name,
                     'last_name': last_name,
+                    'account_type': account_type,
                 },
                 reason='User account created by admin',
                 request=request
             )
             
+            if account_type == 'hr':
+                AuditLogService.log_action(
+                    user=user,
+                    action='ROLE_ASSIGN',
+                    performed_by=created_by,
+                    details={'role': 'hr'},
+                    reason='Restricted Career Services HR account created',
+                    request=request,
+                )
+
             # Send welcome email
             if send_email:
                 try:
@@ -107,7 +135,10 @@ class UserManagementService:
                     site_url = getattr(settings, 'SITE_URL', 'http://localhost:8000')
                     
                     # Render HTML email template
-                    html_message = render_to_string('emails/user_created.html', {
+                    # Never send a newly created HR account's password in
+                    # email. An administrator must share it through a secure
+                    # channel and HR must change it at first opportunity.
+                    html_message = None if account_type == 'hr' else render_to_string('emails/user_created.html', {
                         'user': user,
                         'password': password,
                         'site_url': site_url,
@@ -128,7 +159,17 @@ Best regards,
 NORSU Alumni System
 """
                     
-                    subject = "Welcome to NORSU Alumni System"
+                    if account_type == 'hr':
+                        plain_message = (
+                            f'Hello {first_name} {last_name},\n\n'
+                            'Your restricted NORSU Career Services HR account has been created.\n'
+                            f'Username: {email}\n'
+                            f'HR dashboard: {site_url.rstrip("/")}/jobs/hr/dashboard/\n\n'
+                            'Obtain your initial password securely from the system administrator.\n'
+                            'Please change your password after signing in.\n'
+                        )
+                    subject = ('Your NORSU HR account is ready' if account_type == 'hr'
+                               else 'Welcome to NORSU Alumni System')
                     send_email_with_provider(
                         subject=subject,
                         message=plain_message,

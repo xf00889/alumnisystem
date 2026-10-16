@@ -200,7 +200,15 @@ class UserCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
     form_class = UserCreationForm
     template_name = 'admin/user_management/user_create.html'
     success_url = reverse_lazy('core:user_list')
-    
+
+    def get_initial(self):
+        initial = super().get_initial()
+        # A convenience deep-link from User Management; the submitted form
+        # and the superuser-only view still enforce the actual role choice.
+        if self.request.GET.get('account_type') == 'hr':
+            initial['account_type'] = 'hr'
+        return initial
+
     def form_valid(self, form):
         """
         Handle valid form submission.
@@ -214,7 +222,8 @@ class UserCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
         last_name = form.cleaned_data['last_name']
         password = form.cleaned_data['password']
         send_email = form.cleaned_data.get('send_welcome_email', True)
-        
+        account_type = form.cleaned_data['account_type']
+
         # Call service to create user
         user, profile, success, error_message = UserManagementService.create_user(
             email=email,
@@ -223,15 +232,16 @@ class UserCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
             password=password,
             created_by=self.request.user,
             request=self.request,
-            send_email=send_email
+            send_email=send_email,
+            account_type=account_type,
         )
-        
+
         if success:
             # Success message (Requirement 1.1)
             messages.success(
                 self.request,
-                f'User account created successfully for {email}. '
-                f'{"Welcome email sent." if send_email else "No email sent."}'
+                f'{"HR" if account_type == "hr" else "User"} account created for {email}. '
+                f'{"Welcome email requested (delivery not confirmed)." if send_email else "No email requested."}'
             )
             
             logger.info(

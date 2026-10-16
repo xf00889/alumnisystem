@@ -8,6 +8,7 @@ from alumni_directory.models import Alumni
 User = get_user_model()
 
 
+@override_settings(SECURE_SSL_REDIRECT=False)
 class StaffProfileSeparationTests(TestCase):
     def setUp(self):
         setup_guard = patch('setup.middleware.SetupRequiredMiddleware._is_setup_complete', return_value=True)

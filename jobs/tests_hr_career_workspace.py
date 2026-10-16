@@ -8,7 +8,14 @@ from django.urls import reverse
 from accounts.models import Profile
 from jobs.models import JobPosting, JobApplication
 
-@override_settings(SECURE_SSL_REDIRECT=False)
+@override_settings(
+    SECURE_SSL_REDIRECT=False,
+    STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage',
+    STORAGES={
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    },
+)
 class HRWorkspaceAndApplicationTests(TestCase):
     @classmethod
     def setUpClass(cls):
