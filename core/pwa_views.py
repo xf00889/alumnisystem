@@ -1,8 +1,11 @@
 """Public, credential-free PWA endpoints. No database access or personal content."""
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.shortcuts import redirect
+from django.contrib.auth.views import redirect_to_login
+from django.urls import reverse
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_GET
 from django.views.decorators.cache import never_cache
@@ -19,6 +22,46 @@ def app_launch(request):
     if request.user.is_authenticated:
         return redirect('core:home')
     return redirect('account_login')
+
+
+def _safe_notification_destination(value):
+    """Accept only local path-and-query destinations, never external redirects.
+
+    A push notification is untrusted input to the browser and can be clicked
+    after the authentication session expires. Preserve navigation intent while
+    letting the destination itself enforce role and object permissions.
+    """
+    fallback = reverse('core:all_notifications')
+    if not isinstance(value, str) or not value or len(value) > 1024:
+        return fallback
+    if not value.startswith('/') or value.startswith('//') or '\\' in value:
+        return fallback
+    if any(ord(char) < 32 or ord(char) == 127 for char in value):
+        return fallback
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return fallback
+    if parsed.scheme or parsed.netloc or not parsed.path.startswith('/'):
+        return fallback
+    if parsed.path in (reverse('account_login'), reverse('pwa_notification_open')):
+        return fallback
+    return value
+
+
+@never_cache
+@require_GET
+def notification_open(request):
+    """A click-through entry point for installed-app push notifications.
+
+    Anonymous visitors sign in and return to the original destination. Already
+    authenticated visitors go directly to that destination. This gateway never
+    fetches protected content and never bypasses destination authorization.
+    """
+    target = _safe_notification_destination(request.GET.get('target'))
+    if not request.user.is_authenticated:
+        return redirect_to_login(target, login_url=reverse('account_login'))
+    return redirect(target)
 
 
 @require_GET

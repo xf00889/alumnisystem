@@ -58,20 +58,42 @@ self.addEventListener('push', (event) => {
   })());
 });
 
+// Always enter through the authenticated notification gateway. An expired
+// session can then return to the original link after sign-in, with server-side
+// role and object permissions still enforced at the destination.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil((async () => {
-    const target = new URL(event.notification.data?.url || '/app/', self.location.origin);
+    const raw = event.notification.data?.url || '/app/';
+    let target;
+    try { target = new URL(raw, self.location.origin); } catch (_) { return; }
     if (target.origin !== self.location.origin) return;
-    const clients = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
-    for (const client of clients) {
-      if (new URL(client.url).origin === self.location.origin) {
-        await client.focus();
-        await client.navigate(target.href);
+    const destination = target.pathname + target.search + target.hash;
+    const gateway = new URL('/app/notification/', self.location.origin);
+    gateway.searchParams.set('target', destination);
+
+    // Opening a URL first lets supported browsers restore the installed PWA
+    // rather than redirecting an arbitrary NORSU tab in an ordinary browser.
+    try {
+      const launched = await self.clients.openWindow(gateway.href);
+      if (launched) {
+        await launched.focus();
         return;
       }
+    } catch (_) { /* Fall back to a controlled same-origin window below. */ }
+
+    const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
+    // Only reuse an existing window if opening the app was unavailable.
+    for (const windowClient of windows) {
+      try {
+        if (new URL(windowClient.url).origin !== self.location.origin) continue;
+        const redirected = await windowClient.navigate(gateway.href);
+        if (redirected) {
+          await redirected.focus();
+          return;
+        }
+      } catch (_) { /* Try another client; never open an external origin. */ }
     }
-    await self.clients.openWindow(target.href);
   })());
 });
 

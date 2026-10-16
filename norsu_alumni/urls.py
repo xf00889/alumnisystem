@@ -29,6 +29,7 @@ def profile_search_connected_users(request):
 
 urlpatterns = [
     path("app/", pwa_views.app_launch, name="pwa_launch"),
+    path("app/notification/", pwa_views.notification_open, name="pwa_notification_open"),
     path("api/pwa/push/config/", web_push_views.config, name="pwa_push_config"),
     path("api/pwa/push/subscribe/", web_push_views.subscribe, name="pwa_push_subscribe"),
     path("api/pwa/push/unsubscribe/", web_push_views.unsubscribe, name="pwa_push_unsubscribe"),
