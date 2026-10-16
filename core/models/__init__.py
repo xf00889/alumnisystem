@@ -58,4 +58,7 @@ __all__ = [
     'OrganizationSchema',
     'AIConfig',
     'SystemSettings',
+    'CoordinatorCampus',
 ]
+
+from .coordinator_campus import CoordinatorCampus

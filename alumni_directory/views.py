@@ -73,6 +73,16 @@ def _registrar_csv_rows(decoded_file):
         }
 
 
+def coordinator_scoped_alumni(request, queryset):
+    """Restrict administrative alumni data to a coordinator's assigned campuses."""
+    user = request.user
+    if user.is_authenticated and not (user.is_staff or user.is_superuser) and getattr(getattr(user, 'profile', None), 'is_alumni_coordinator', False):
+        from core.models.coordinator_campus import CoordinatorCampus
+        campuses = CoordinatorCampus.objects.filter(user=user).values_list('campus', flat=True)
+        return queryset.filter(campus__in=campuses)
+    return queryset
+
+
 def apply_selective_export_filters(request, base_queryset=None):
     """
     Apply selective export filters and generate appropriate filename
@@ -83,6 +93,8 @@ def apply_selective_export_filters(request, base_queryset=None):
     else:
         export_queryset = base_queryset
     
+    export_queryset = coordinator_scoped_alumni(request, export_queryset)
+
     # Log initial count
     import logging
     logger = logging.getLogger(__name__)
@@ -333,7 +345,7 @@ def alumni_list(request):
         provinces_count = provinces.count()
         
         # Base queryset with efficient loading
-        queryset = Alumni.objects.select_related('user', 'user__profile').all()
+        queryset = coordinator_scoped_alumni(request, Alumni.objects.select_related('user', 'user__profile').all())
         initial_count = queryset.count()
         
         logger.debug(
@@ -518,7 +530,7 @@ def alumni_detail(request, pk):
     
     try:
         # Get alumni object or 404
-        alumni = get_object_or_404(Alumni, pk=pk)
+        alumni = get_object_or_404(coordinator_scoped_alumni(request, Alumni.objects.all()), pk=pk)
         try:
             alumni_name = alumni.full_name
         except Exception:
@@ -684,6 +696,15 @@ def download_document(request, doc_id):
             document = get_object_or_404(Document, id=doc_id)
             file_obj = document.file
         
+        # Assigned-campus coordinators may only request documents linked to their own campuses.
+        if getattr(getattr(request.user, 'profile', None), 'is_alumni_coordinator', False) and not (request.user.is_staff or request.user.is_superuser):
+            if isinstance(document, AlumniDocument):
+                alumni_qs = Alumni.objects.filter(pk=document.alumni_id)
+            else:
+                alumni_qs = Alumni.objects.filter(user_id=document.profile.user_id)
+            if not coordinator_scoped_alumni(request, alumni_qs).exists():
+                return JsonResponse({'message':'Document outside assigned campuses.'}, status=403)
+
         # Verify the document exists and is accessible
         if not file_obj:
             logger.warning(f"Document {doc_id} has no file attached")
@@ -716,7 +737,7 @@ def send_reminder(request, pk):
         return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
         
     try:
-        alumni = get_object_or_404(Alumni.objects.select_related('user'), pk=pk)
+        alumni = get_object_or_404(coordinator_scoped_alumni(request, Alumni.objects.select_related('user')), pk=pk)
         
         # Get missing fields
         required_fields = [
@@ -867,7 +888,7 @@ def tabular_alumni_list(request):
     """
     try:
         # Base queryset with efficient loading
-        queryset = Alumni.objects.select_related('user', 'user__profile').all()
+        queryset = coordinator_scoped_alumni(request, Alumni.objects.select_related('user', 'user__profile').all())
         
         # Apply filters
         search_query = request.GET.get('search', '').strip()
@@ -973,6 +994,8 @@ def alumni_management(request):
     """
     Alumni Management view with tabular display, import/export functionality.
     """
+    if request.method == 'POST' and 'import_registry_csv' in request.POST and getattr(getattr(request.user, 'profile', None), 'is_alumni_coordinator', False) and not request.user.is_staff:
+        raise PermissionDenied('Only central administrators may import the university-wide registrar list.')
     try:
         if request.method == 'POST' and 'import_registry_csv' in request.POST:
             csv_file = request.FILES.get('registry_csv_file')
@@ -992,7 +1015,7 @@ def alumni_management(request):
                     messages.error(request, f'Error importing registrar CSV file: {exc}')
 
         # Base queryset with efficient loading
-        queryset = Alumni.objects.select_related('user', 'user__profile').all()
+        queryset = coordinator_scoped_alumni(request, Alumni.objects.select_related('user', 'user__profile').all())
         
         # Apply filters
         search_query = request.GET.get('search', '').strip()
@@ -1420,7 +1443,7 @@ def alumni_detail_modal(request, pk):
     Return alumni detail content for modal display.
     """
     try:
-        alumni = get_object_or_404(Alumni, pk=pk)
+        alumni = get_object_or_404(coordinator_scoped_alumni(request, Alumni.objects.all()), pk=pk)
         logger.info(f"Alumni detail modal accessed for ID: {pk}, Name: {alumni.full_name}")
 
         # Get profile

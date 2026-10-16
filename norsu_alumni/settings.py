@@ -120,6 +120,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'core.middleware.coordinator_access.CoordinatorAccessMiddleware',
     'log_viewer.middleware.AuditLogMiddleware',  # Store request for audit logging
     'django_htmx.middleware.HtmxMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',

@@ -49,7 +49,10 @@
     {% endif %}
     <!-- Custom CSS -->
      <link rel="stylesheet" href="{% static 'css/modules/layout-authenticated.css' %}">
-     {% if user.is_superuser or user.is_staff or user.is_authenticated and user.profile.is_alumni_coordinator %}
+     {% if coordinator_workspace %}
+     {# Reuse the HR workspace's top-bar navigation visual system. #}
+     <link rel="stylesheet" href="{% static 'css/admin/hr-workspace.css' %}">
+     {% elif user.is_superuser or user.is_staff %}
      <link rel="stylesheet" href="{% static 'css/admin/navigation.css' %}">
      {% endif %}
      {% block extra_css %}{% endblock extra_css %}
@@ -57,11 +60,14 @@
      <link rel="stylesheet" href="{% static 'css/admin/page-headers.css' %}">
      {% endif %}
     <link rel="stylesheet" href="{% static 'css/alumni/location-sharing.css' %}">
+    {% if coordinator_workspace %}<link rel="stylesheet" href="{% static 'css/admin/coordinator-navigation.css' %}">{% endif %}
 </head>
-<body data-user-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}" data-user-is-staff="{% if user.is_staff %}true{% else %}false{% endif %}">
-    {% if user.is_superuser or user.is_staff or user.is_authenticated and user.profile.is_alumni_coordinator %}
-    <!-- Custom administration sidebar; same feature links and permission conditions. -->
-    {% include "admin/components/sidebar.html" %}
+<body class="{% if coordinator_workspace %}coordinator-workspace{% endif %}" data-user-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}" data-user-is-staff="{% if user.is_staff %}true{% else %}false{% endif %}">
+    {% if coordinator_workspace %}
+    {# Coordinator navigation mirrors the HR top-bar, not the admin sidebar. #}
+    {% include 'admin/coordinator/navigation.html' %}
+    {% elif user.is_superuser or user.is_staff %}
+    {% include 'admin/components/sidebar.html' %}
    {% elif not user.is_superuser and not user.is_staff and not request.resolver_match.url_name == 'account_reset_password' %}
 
     <nav class="navbar navbar-expand-lg fixed-top">
@@ -408,7 +414,7 @@
     {% endif %}
 
     <!-- Main Content -->
-    <main class="content-wrapper {% if user.is_superuser or user.is_staff or user.is_authenticated and user.profile.is_alumni_coordinator %}with-sidebar{% endif %}" {% if not user.is_superuser and not user.is_staff and not user.profile.is_alumni_coordinator and not request.resolver_match.url_name == 'account_reset_password' %}style="margin-top: {% if show_tracer_study_banner %}138px{% else %}76px{% endif %};"{% endif %}>
+    <main class="content-wrapper {% if coordinator_workspace %}coordinator-content{% elif user.is_superuser or user.is_staff %}with-sidebar{% endif %}" {% if not user.is_superuser and not user.is_staff and not user.profile.is_alumni_coordinator and not request.resolver_match.url_name == 'account_reset_password' %}style="margin-top: {% if show_tracer_study_banner %}138px{% else %}76px{% endif %};"{% endif %}>
 
         {% if messages %}
             <!-- Django messages container - hidden and processed by ToastUtils -->
@@ -518,8 +524,11 @@
     <!-- Custom JavaScript Modules -->
     <script src="{% static 'js/main.js' %}"></script>
     <script src="{% static 'js/location.js' %}"></script>
-    {% if user.is_superuser or user.is_staff or user.is_authenticated and user.profile.is_alumni_coordinator %}
+    {% if user.is_superuser or user.is_staff %}
     <script src="{% static 'js/admin/navigation.js' %}"></script>
+    {% endif %}
+    {% if coordinator_workspace %}
+    <script src="{% static 'js/admin/coordinator-navigation.js' %}" defer></script>
     {% endif %}
     <script src="{% static 'js/connections.js' %}"></script>
     {% if recaptcha_enabled %}

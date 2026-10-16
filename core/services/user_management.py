@@ -411,7 +411,7 @@ class RoleAssignmentService:
     
     @staticmethod
     @transaction.atomic
-    def assign_role(user, role_name, assigned_by, request=None, send_email=True):
+    def assign_role(user, role_name, assigned_by, request=None, send_email=True, campus_codes=None):
         """
         Assign a role to a user
         
@@ -448,6 +448,15 @@ class RoleAssignmentService:
             if role_name in ('admin', 'superuser', 'alumni_coordinator') and profile and profile.is_hr:
                 return (False, 'Revoke the HR role before assigning broader administrator permissions.')
 
+            # Campus scope is required and validated server-side before any role mutation.
+            if role_name == 'alumni_coordinator':
+                from alumni_directory.models import Alumni
+                valid = {code for code, _label in Alumni.CAMPUS_CHOICES}
+                if not isinstance(campus_codes, list) or not campus_codes or len(campus_codes) != len(set(campus_codes)) or any(not isinstance(code, str) or code not in valid for code in campus_codes):
+                    return (False, 'Select at least one valid NORSU campus for the coordinator.')
+                if user.is_staff or user.is_superuser or (profile and profile.is_hr):
+                    return (False, 'Use a separate restricted coordinator account, not a staff or HR account.')
+
             # Assign the role
             field_info = RoleAssignmentService.ROLE_FIELDS[role_name]
             
@@ -467,6 +476,9 @@ class RoleAssignmentService:
             elif role_name == 'alumni_coordinator':
                 user.profile.is_alumni_coordinator = True
                 user.profile.save(update_fields=['is_alumni_coordinator'])
+                from core.models.coordinator_campus import CoordinatorCampus
+                CoordinatorCampus.objects.filter(user=user).delete()
+                CoordinatorCampus.objects.bulk_create([CoordinatorCampus(user=user, campus=code) for code in campus_codes])
                 
             elif role_name == 'mentor':
                 # Create or activate mentor profile
@@ -498,6 +510,7 @@ class RoleAssignmentService:
                 performed_by=assigned_by,
                 details={
                     'role': role_name,
+                    'assigned_campuses': campus_codes if role_name == 'alumni_coordinator' else [],
                 },
                 reason=f"Role '{role_name}' assigned",
                 request=request
@@ -612,6 +625,8 @@ NORSU Alumni System
             elif role_name == 'alumni_coordinator':
                 user.profile.is_alumni_coordinator = False
                 user.profile.save(update_fields=['is_alumni_coordinator'])
+                from core.models.coordinator_campus import CoordinatorCampus
+                CoordinatorCampus.objects.filter(user=user).delete()
                 
             elif role_name == 'mentor':
                 # Deactivate mentor profile

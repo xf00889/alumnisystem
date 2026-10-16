@@ -38,6 +38,7 @@ def user_role_context(request):
     """
     context = {
         'is_alumni_coordinator': False,
+        'coordinator_workspace': False,
         'can_access_system_config': False,
         # Shared templates choose their layout based on the authenticated user role.
         'alumni_page_base': 'base.html',
@@ -58,6 +59,12 @@ def user_role_context(request):
         if hasattr(request.user, 'profile'):
             context['is_alumni_coordinator'] = request.user.profile.is_alumni_coordinator
             is_hr_user = getattr(request.user.profile, 'is_hr', False)
+
+        context['coordinator_workspace'] = bool(
+            context['is_alumni_coordinator']
+            and not request.user.is_staff
+            and not request.user.is_superuser
+        )
 
         from jobs.hr_access import is_hr_only
         if is_hr_only(request.user):

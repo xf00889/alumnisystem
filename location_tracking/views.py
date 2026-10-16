@@ -34,12 +34,21 @@ def is_admin(user):
     return bool(user.is_superuser or user.is_staff or (profile and profile.is_alumni_coordinator))
 
 
-def _latest_verified_locations():
+def _coordinator_campuses(user):
+    if user.is_superuser or user.is_staff:
+        return None
+    from core.models.coordinator_campus import CoordinatorCampus
+    return list(CoordinatorCampus.objects.filter(user=user).values_list('campus', flat=True))
+
+
+def _latest_verified_locations(allowed_campuses=None):
     """One latest, active position per verified alumnus, never non-alumni staff."""
     cutoff = timezone.now() - timedelta(days=MAP_LOOKBACK_DAYS)
     queryset = (LocationData.objects.filter(
         is_active=True, timestamp__gte=cutoff, user__alumni__is_verified=True,
     ).select_related('user', 'user__alumni', 'user__profile').order_by('-timestamp', '-pk'))
+    if allowed_campuses is not None:
+        queryset = queryset.filter(user__alumni__campus__in=allowed_campuses)
     seen = set()
     results = []
     for position in queryset:
@@ -83,7 +92,7 @@ def map_view(request):
 @user_passes_test(is_admin)
 @never_cache
 def get_all_locations(request):
-    return JsonResponse({'locations': _latest_verified_locations(), 'lookback_days': MAP_LOOKBACK_DAYS})
+    return JsonResponse({'locations': _latest_verified_locations(_coordinator_campuses(request.user)), 'lookback_days': MAP_LOOKBACK_DAYS})
 
 
 @require_GET
@@ -160,6 +169,8 @@ def lookup_street_address(request, position_id):
         timestamp__gte=timezone.now() - timedelta(days=MAP_LOOKBACK_DAYS),
         user__alumni__is_verified=True,
     ).first())
+    if position and _coordinator_campuses(request.user) is not None and position.user.alumni.campus not in _coordinator_campuses(request.user):
+        position = None
     if not position:
         return JsonResponse({'message': 'This shared location is no longer available.'}, status=404)
 

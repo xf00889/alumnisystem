@@ -58,7 +58,8 @@ function toggleUserStatus(userId, action) {
         },
         body: JSON.stringify({
             action: action,
-            reason: reason
+            reason: reason,
+            campuses: campuses
         })
     })
     .then(response => response.json())
@@ -92,7 +93,7 @@ function toggleUserStatus(userId, action) {
 }
 
 // Manage user roles (assign/remove)
-function manageUserRole(userId, role, action, reason = '') {
+function manageUserRole(userId, role, action, reason = '', campuses = []) {
     // Show loading indicator
     const applyBtn = document.getElementById('applyRoleBtn');
     if (applyBtn) {

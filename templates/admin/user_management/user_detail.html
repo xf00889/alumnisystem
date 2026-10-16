@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script>document.documentElement.classList.add("fe-page--admin-user-management-user-detail-html");</script>
 <link rel="stylesheet" href="{% static 'css/modules/admin.css' %}">
+<link rel="stylesheet" href="{% static 'css/admin/coordinator-user-management.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -263,14 +264,14 @@
 <!-- Role Management Modal -->
 {% if can_manage_roles %}
 <div class="modal fade" id="roleManagementModal" tabindex="-1" aria-labelledby="roleManagementModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered coordinator-role-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="roleManagementModalLabel">Manage User Roles</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted mb-3">Assign or remove roles for {{ user_obj.get_full_name }}</p>
+                <p class="coordinator-role-caption">Update account access for <strong>{{ user_obj.get_full_name|default:user_obj.username }}</strong>.</p>
                 
                 <div class="mb-3">
                     <label class="form-label fw-bold">Current Roles:</label>
@@ -308,6 +309,17 @@
                     </select>
                 </div>
 
+                <fieldset class="coordinator-campuses" id="coordinatorCampusFields" hidden>
+                    <legend>Assigned campuses <span aria-hidden="true">*</span></legend>
+                    <p>Choose the campuses this coordinator is responsible for.</p>
+                    <div class="coordinator-campus-grid">
+                    {% for code, label in coordinator_campus_choices %}
+                      <label><input type="checkbox" name="coordinator_campuses" value="{{ code }}" {% if code in coordinator_assigned_campuses %}checked{% endif %}> <span>{{ label }}</span></label>
+                    {% endfor %}
+                    </div>
+                    <p class="coordinator-campuses-error" id="coordinatorCampusError" aria-live="polite"></p>
+                </fieldset>
+
                 <div class="mb-3">
                     <label for="roleAction" class="form-label fw-bold">Action:</label>
                     <select class="form-select" id="roleAction">
@@ -318,7 +330,7 @@
 
                 <div class="mb-3">
                     <label for="roleReason" class="form-label fw-bold">Reason (optional):</label>
-                    <textarea class="form-control" id="roleReason" rows="3" 
+                    <textarea class="form-control" id="roleReason" rows="2" 
                               placeholder="Enter reason for this role change..."></textarea>
                 </div>
             </div>
@@ -342,6 +354,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const roleReason = document.getElementById('roleReason');
     const modal = document.getElementById('roleManagementModal');
 
+    const campusFields = document.getElementById('coordinatorCampusFields');
+    const campusError = document.getElementById('coordinatorCampusError');
+    function refreshCampusFields() {
+        const visible = roleSelect.value === 'alumni_coordinator' && roleAction.value === 'assign';
+        campusFields.hidden = !visible;
+        campusError.textContent = '';
+    }
+    roleSelect?.addEventListener('change', refreshCampusFields);
+    roleAction?.addEventListener('change', refreshCampusFields);
+    refreshCampusFields();
     if (applyRoleBtn) {
         applyRoleBtn.addEventListener('click', function() {
             const role = roleSelect.value;
@@ -349,21 +371,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const reason = roleReason.value;
 
             if (!role) {
-                alert('Please select a role');
+                roleSelect.focus();
+                roleSelect.setCustomValidity('Please select a role.');
+                roleSelect.reportValidity();
+                roleSelect.setCustomValidity('');
                 return;
             }
 
-            // Call the role management function from user_management.js
+            const campuses = [...campusFields.querySelectorAll('input:checked')].map(input => input.value);
+            if (role === 'alumni_coordinator' && action === 'assign' && campuses.length === 0) {
+                campusError.textContent = 'Select at least one campus.';
+                return;
+            }
+            // Keep the modal open on backend errors so validation remains visible.
             if (typeof window.manageUserRole === 'function') {
-                window.manageUserRole({{ user_obj.id }}, role, action, reason);
-                
-                // Close modal after a short delay
-                setTimeout(() => {
-                    const bsModal = bootstrap.Modal.getInstance(modal);
-                    if (bsModal) {
-                        bsModal.hide();
-                    }
-                }, 500);
+                window.manageUserRole({{ user_obj.id }}, role, action, reason, campuses);
             } else {
                 console.error('manageUserRole function not found');
                 alert('Error: Role management function not loaded');

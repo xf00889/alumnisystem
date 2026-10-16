@@ -21,7 +21,20 @@ def hr_dashboard(request):
     trend = list(applications.filter(application_date__gte=six_months_ago)
                  .annotate(month=TruncMonth('application_date'))
                  .values('month').annotate(total=Count('pk')).order_by('month'))
+    monthly = {point['month'].strftime('%Y-%m'):point['total'] for point in trend}
+    from calendar import month_name
+    labels, counts = [], []
+    for months_back in range(5, -1, -1):
+        year = timezone.localdate().year
+        month = timezone.localdate().month - months_back
+        while month < 1:
+            year -= 1
+            month += 12
+        labels.append(f'{month_name[month][:3]} {year}')
+        counts.append(monthly.get(f'{year}-{month:02d}', 0))
     return render(request, 'jobs/hr/dashboard.html', {
+        'trend_chart': {'labels': labels, 'values': counts},
+        'jobs_chart': {'labels': ['Internal applications', 'External postings'], 'values': [internal.count(), jobs.exclude(accepts_internal_applications=True).count()]},
         'active_jobs': jobs.filter(is_active=True).count(),
         'internal_jobs': internal.count(),
         'submitted_applications': applications.count(),

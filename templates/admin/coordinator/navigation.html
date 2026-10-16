@@ -1,0 +1,75 @@
+{% load static %}
+{# Coordinator-only links, grouped like the admin sidebar but rendered in HR's top-bar shell. #}
+<header class="hr-topbar coordinator-topbar">
+  <div class="hr-topbar-inner">
+    <a class="hr-identity" href="{% url 'core:coordinator_dashboard' %}" aria-label="NORSU Alumni Coordinator overview">
+      <img src="{% static 'images/alumni_logo.webp' %}" width="38" height="38" alt="">
+      <span>NORSU <strong>Coordinator Workspace</strong></span>
+    </a>
+    <button type="button" class="coordinator-nav-toggle" aria-controls="coordinator-primary-nav" aria-expanded="false">
+      <i class="fas fa-bars" aria-hidden="true"></i> Menu
+    </button>
+    <nav id="coordinator-primary-nav" aria-label="Alumni Coordinator navigation" class="hr-nav coordinator-nav">
+      <a class="coordinator-overview-link {% if request.resolver_match.url_name == 'coordinator_dashboard' %}active{% endif %}"
+         href="{% url 'core:coordinator_dashboard' %}" {% if request.resolver_match.url_name == 'coordinator_dashboard' %}aria-current="page"{% endif %}>Overview</a>
+
+      <details class="coordinator-menu-group{% if request.resolver_match.app_name == 'alumni_directory' or request.resolver_match.app_name == 'alumni_groups' or request.resolver_match.app_name == 'location_tracking' %} active-group{% endif %}">
+        <summary class="coordinator-menu-trigger">Alumni Management <i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+        <div class="coordinator-menu-popover">
+          <a href="{% url 'alumni_directory:alumni_list' %}" {% if request.resolver_match.url_name == 'alumni_list' %}class="active" aria-current="page"{% endif %}>Alumni Directory</a>
+          <a href="{% url 'alumni_directory:alumni_management' %}" {% if request.resolver_match.url_name == 'alumni_management' %}class="active" aria-current="page"{% endif %}>Alumni Management</a>
+          <a href="{% url 'alumni_groups:admin_group_directory' %}" {% if request.resolver_match.app_name == 'alumni_groups' %}class="active" aria-current="page"{% endif %}>Alumni Groups</a>
+          <a href="{% url 'location_tracking:map' %}" {% if request.resolver_match.app_name == 'location_tracking' %}class="active" aria-current="page"{% endif %}>Location Tracking</a>
+        </div>
+      </details>
+
+      <details class="coordinator-menu-group{% if request.resolver_match.app_name == 'announcements' or request.resolver_match.app_name == 'events' or request.resolver_match.app_name == 'feedback' %} active-group{% endif %}">
+        <summary class="coordinator-menu-trigger">Communications <i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+        <div class="coordinator-menu-popover">
+          <a href="{% url 'announcements:announcement-list' %}" {% if request.resolver_match.app_name == 'announcements' %}class="active" aria-current="page"{% endif %}>Announcements</a>
+          <a href="{% url 'events:event_list' %}" {% if request.resolver_match.app_name == 'events' %}class="active" aria-current="page"{% endif %}>Events</a>
+          <a href="{% url 'feedback:manage_feedbacks' %}" {% if request.resolver_match.app_name == 'feedback' %}class="active" aria-current="page"{% endif %}>Feedbacks</a>
+        </div>
+      </details>
+
+      <details class="coordinator-menu-group{% if request.resolver_match.app_name == 'donations' %} active-group{% endif %}">
+        <summary class="coordinator-menu-trigger">Donations <i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+        <div class="coordinator-menu-popover">
+          <a href="{% url 'donations:verification_dashboard' %}" {% if request.resolver_match.url_name == 'verification_dashboard' %}class="active" aria-current="page"{% endif %}>Donation Verification</a>
+          <a href="{% url 'donations:manage_campaigns' %}" {% if request.resolver_match.url_name == 'manage_campaigns' %}class="active" aria-current="page"{% endif %}>Manage Campaigns</a>
+          <a href="{% url 'donations:analytics_dashboard' %}" {% if request.resolver_match.url_name == 'analytics_dashboard' %}class="active" aria-current="page"{% endif %}>Donation Analytics</a>
+          <a href="{% url 'donations:manage_gcash' %}" {% if request.resolver_match.url_name == 'manage_gcash' %}class="active" aria-current="page"{% endif %}>Manage GCash</a>
+          <a href="{% url 'donations:campaign_list' %}" {% if request.resolver_match.url_name == 'campaign_list' %}class="active" aria-current="page"{% endif %}>Public Campaigns</a>
+        </div>
+      </details>
+
+      <details class="coordinator-menu-group{% if request.resolver_match.url_name == 'admin_mentor_list' %} active-group{% endif %}">
+        <summary class="coordinator-menu-trigger">Mentorship <i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+        <div class="coordinator-menu-popover">
+          <a href="{% url 'accounts:admin_mentor_list' %}" {% if request.resolver_match.url_name == 'admin_mentor_list' %}class="active" aria-current="page"{% endif %}>Mentor List</a>
+        </div>
+      </details>
+
+      <details class="coordinator-menu-group{% if request.resolver_match.app_name == 'surveys' %} active-group{% endif %}">
+        <summary class="coordinator-menu-trigger">Analytics <i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+        <div class="coordinator-menu-popover">
+          <a href="{% url 'surveys:survey_list' %}" {% if request.resolver_match.url_name == 'survey_list' %}class="active" aria-current="page"{% endif %}>Surveys</a>
+          <a href="{% url 'surveys:report_list' %}" {% if request.resolver_match.url_name == 'report_list' %}class="active" aria-current="page"{% endif %}>Reports</a>
+          <a href="{% url 'surveys:tracer_study_reports' %}" {% if request.resolver_match.url_name == 'tracer_study_reports' or request.resolver_match.url_name == 'tracer_study_report' %}class="active" aria-current="page"{% endif %}>Tracer Study</a>
+          <a href="{% url 'surveys:employability_report' %}" {% if request.resolver_match.url_name == 'employability_report' %}class="active" aria-current="page"{% endif %}>Employability Report</a>
+        </div>
+      </details>
+
+      <details class="coordinator-menu-group{% if request.resolver_match.url_name == 'staff_profile' or request.resolver_match.url_name == 'edit_staff_profile' or request.resolver_match.url_name == 'change_staff_password' or request.resolver_match.url_name == 'change_staff_email' %} active-group{% endif %}">
+        <summary class="coordinator-menu-trigger">Account <i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+        <div class="coordinator-menu-popover coordinator-menu-popover--right">
+          <a href="{% url 'accounts:staff_profile' %}" {% if request.resolver_match.url_name == 'staff_profile' or request.resolver_match.url_name == 'edit_staff_profile' or request.resolver_match.url_name == 'change_staff_password' or request.resolver_match.url_name == 'change_staff_email' %}class="active" aria-current="page"{% endif %}>My Profile</a>
+        </div>
+      </details>
+    </nav>
+    <form method="post" action="{% url 'account_logout' %}" class="coordinator-signout-form">
+      {% csrf_token %}
+      <button class="hr-signout" type="submit">Sign out</button>
+    </form>
+  </div>
+</header>

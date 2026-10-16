@@ -75,6 +75,8 @@ def post_registration(request):
     # records. Redirect even if an old onboarding link was bookmarked.
     if is_hr_only(request.user):
         return redirect('jobs:hr_dashboard')
+    if getattr(getattr(request.user, 'profile', None), 'is_alumni_coordinator', False) and not request.user.is_staff:
+        return redirect('core:coordinator_dashboard')
 
     # First, ensure the user has a profile
     try:

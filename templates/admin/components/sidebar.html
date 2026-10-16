@@ -11,7 +11,7 @@
     <header class="staff-nav__header">
         <div class="staff-nav__identity">
             <img src="{% static 'images/alumni_logo.png' %}" alt="" width="34" height="34">
-            <div class="staff-nav__identity-text"><strong>NORSU</strong><span>Administration</span></div>
+            <div class="staff-nav__identity-text"><strong>NORSU</strong><span>{% if user.profile.is_alumni_coordinator and not user.is_staff and not user.is_superuser %}Alumni Coordinator{% else %}Administration{% endif %}</span></div>
         </div>
         <button class="staff-nav__close" type="button" aria-label="Close administration menu"><i class="fas fa-xmark" aria-hidden="true"></i></button>
     </header>
@@ -19,10 +19,10 @@
         <ul class="staff-nav__list">
             <!-- DASHBOARD -->
             <li class="staff-nav__item">
-                <a class="staff-nav__link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}" 
-                   href="{% url 'core:admin_dashboard' %}">
+                <a class="staff-nav__link {% if request.resolver_match.url_name == 'admin_dashboard' or request.resolver_match.url_name == 'coordinator_dashboard' %}active{% endif %}" 
+                   href="{% if user.profile.is_alumni_coordinator and not user.is_staff and not user.is_superuser %}{% url 'core:coordinator_dashboard' %}{% else %}{% url 'core:admin_dashboard' %}{% endif %}">
                     <i aria-hidden="true" class="fas fa-tachometer-alt"></i>
-                    <span>Dashboard</span>
+                    <span>{% if user.profile.is_alumni_coordinator and not user.is_staff and not user.is_superuser %}Coordinator Overview{% else %}Dashboard{% endif %}</span>
                 </a>
             </li>
             
@@ -81,6 +81,7 @@
                 </div>
             </li>
             
+            {% if not user.profile.is_alumni_coordinator or user.is_staff or user.is_superuser %}
             <!-- CAREER SERVICES GROUP -->
             <li class="staff-nav__item">
                 <button class="staff-nav__disclosure" type="button" aria-expanded="true" aria-controls="staff-nav-career-services">
@@ -106,6 +107,7 @@
                 </div>
             </li>
 
+            {% endif %}
             <!-- DONATIONS GROUP -->
             <li class="staff-nav__item">
                 <button class="staff-nav__disclosure" type="button" aria-expanded="true" aria-controls="staff-nav-donations">

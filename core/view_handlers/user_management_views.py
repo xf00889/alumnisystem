@@ -88,6 +88,8 @@ class UserListView(LoginRequiredMixin, StaffRequiredMixin, ListView):
                 queryset = queryset.filter(is_staff=True, is_superuser=False)
             elif role_filter == 'hr':
                 queryset = queryset.filter(profile__is_hr=True)
+            elif role_filter == 'alumni_coordinator':
+                queryset = queryset.filter(profile__is_alumni_coordinator=True)
             elif role_filter == 'mentor':
                 queryset = queryset.filter(mentor_profile__is_active=True)
             elif role_filter == 'alumni':
@@ -95,7 +97,8 @@ class UserListView(LoginRequiredMixin, StaffRequiredMixin, ListView):
                 queryset = queryset.filter(
                     is_staff=False,
                     is_superuser=False,
-                    profile__is_hr=False
+                    profile__is_hr=False,
+                    profile__is_alumni_coordinator=False,
                 ).exclude(mentor_profile__is_active=True)
         
         # Apply status filter (Requirement 4.4)
@@ -163,6 +166,7 @@ class UserListView(LoginRequiredMixin, StaffRequiredMixin, ListView):
             'superuser': User.objects.filter(is_superuser=True).count(),
             'admin': User.objects.filter(is_staff=True, is_superuser=False).count(),
             'hr': User.objects.filter(profile__is_hr=True).count(),
+            'alumni_coordinator': User.objects.filter(profile__is_alumni_coordinator=True).count(),
             'mentor': User.objects.filter(mentor_profile__is_active=True).count(),
         }
         
@@ -400,7 +404,11 @@ class UserDetailView(LoginRequiredMixin, StaffRequiredMixin, DetailView):
         context['is_viewing_self'] = self.request.user.id == user_obj.id
         
         # Add available roles for role management
-        context['available_roles'] = ['hr', 'admin', 'superuser', 'mentor']
+        context['available_roles'] = ['hr', 'admin', 'superuser', 'mentor', 'alumni_coordinator']
+        from alumni_directory.models import Alumni
+        context['coordinator_campus_choices'] = Alumni.CAMPUS_CHOICES
+        from core.models.coordinator_campus import CoordinatorCampus
+        context['coordinator_assigned_campuses'] = list(CoordinatorCampus.objects.filter(user=user_obj).values_list('campus', flat=True))
         
         return context
 
@@ -486,7 +494,8 @@ class UserRoleManagementView(LoginRequiredMixin, SuperuserRequiredMixin, View):
                     role_name=role,
                     assigned_by=request.user,
                     request=request,
-                    send_email=True
+                    send_email=True,
+                    campus_codes=data.get('campuses') if role == 'alumni_coordinator' else None,
                 )
                 action_text = 'assigned'
             else:  # remove

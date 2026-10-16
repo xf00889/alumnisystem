@@ -46,7 +46,7 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         
         # Alumni coordinators should also go to admin dashboard
         if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator:
-            return reverse('core:admin_dashboard')
+            return reverse('core:coordinator_dashboard')
         
         # HR accounts are provisioned by administration, not through the
         # alumni registrar. They must never be forced to claim alumni details.
@@ -227,7 +227,7 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                 
                 # Alumni coordinators should also go to admin dashboard
                 if hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator:
-                    return reverse('core:admin_dashboard')
+                    return reverse('core:coordinator_dashboard')
                 
                 if is_hr_only(request.user):
                     return reverse('jobs:hr_dashboard')

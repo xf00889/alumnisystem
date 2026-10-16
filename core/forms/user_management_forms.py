@@ -180,6 +180,7 @@ class UserSearchForm(forms.Form):
         ('alumni', 'Alumni'),
         ('mentor', 'Mentor'),
         ('hr', 'HR'),
+        ('alumni_coordinator', 'Alumni Coordinator'),
         ('admin', 'Admin'),
         ('superuser', 'Superuser'),
     ]
