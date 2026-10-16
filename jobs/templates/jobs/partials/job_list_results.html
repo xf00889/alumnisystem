@@ -67,9 +67,15 @@
     </div>
     <div class="card-action">
         {% if job.accepts_internal_applications %}
-        <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-outline-primary btn-apply-modern">Apply</a>
+            {% if job.has_applied %}
+            <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-primary btn-apply-modern" aria-label="View submitted application for {{ job.job_title }}">Applied · View Status</a>
+            {% else %}
+            <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-primary btn-apply-modern">Apply Now</a>
+            {% endif %}
+        {% elif job.application_link %}
+        <a href="{{ job.application_link }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-apply-modern">Apply on External Site</a>
         {% else %}
-        <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-primary btn-apply-modern">View</a>
+        <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-primary btn-apply-modern">View Details</a>
         {% endif %}
     </div>
 </article>

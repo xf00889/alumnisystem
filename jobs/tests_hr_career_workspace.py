@@ -36,6 +36,19 @@ class HRWorkspaceAndApplicationTests(TestCase):
         cls.external=JobPosting.objects.create(job_title='External Job',company_name='Third Party',location='Remote',job_description='External application only',source_type='EXTERNAL',application_link='https://example.org/apply',accepts_internal_applications=False)
         cls.internal=JobPosting.objects.create(job_title='Internal Job',company_name='NORSU',location='Dumaguete',job_description='Apply through the portal',source_type='INTERNAL')
 
+    @override_settings(USE_TZ=False, TIME_ZONE='Asia/Manila')
+    def test_hr_dashboard_renders_monthly_analytics_with_naive_datetimes(self):
+        """The production timezone mode must not crash HR Overview (HTTP 500)."""
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        self.client.force_login(self.hr)
+        response = self.client.get(reverse('jobs:hr_dashboard'), secure=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'HR Overview')
+        labels = response.context['trend_chart']['labels']
+        self.assertEqual(len(labels), 6)
+        self.assertEqual(labels[-1], datetime.now(ZoneInfo('Asia/Manila')).strftime('%b %Y'))
+
     def test_hr_is_not_staff_and_receives_limited_dashboard(self):
         self.assertFalse(self.hr.is_staff)
         self.client.force_login(self.hr)

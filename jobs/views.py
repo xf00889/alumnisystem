@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
 from django.core.cache import cache
 from django.contrib import messages
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Exists, OuterRef
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, Http404
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -475,6 +475,14 @@ def job_list(request):
     show_all = dataset['show_all']
 
     jobs, current_filters = _apply_request_filters(jobs, request)
+
+    # A single EXISTS annotation powers featured and list-card application states.
+    # It is evaluated with each page's queryset, not as per-card queries.
+    jobs = jobs.annotate(
+        has_applied=Exists(
+            JobApplication.objects.filter(job_id=OuterRef('pk'), applicant_id=request.user.pk)
+        )
+    )
 
     sort_param = (request.GET.get('sort') or '').strip().lower()
     current_sort = sort_param

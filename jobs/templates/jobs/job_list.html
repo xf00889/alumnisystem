@@ -355,6 +355,18 @@
                                             <i class="fas fa-clock me-1"></i>{{ job.posted_date|timesince }} ago
                                         </span>
                                     </div>
+                                    <div class="featured-job-actions" aria-label="Actions for {{ job.job_title }}">
+                                        {% if job.accepts_internal_applications %}
+                                            {% if job.has_applied %}
+                                            <span class="featured-job-applied"><i class="fas fa-check-circle me-1" aria-hidden="true"></i>Application submitted</span>
+                                            {% else %}
+                                            <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-primary featured-job-apply"><i class="fas fa-paper-plane me-1" aria-hidden="true"></i>Apply Now</a>
+                                            {% endif %}
+                                        {% elif job.application_link %}
+                                        <a href="{{ job.application_link }}" class="btn btn-primary featured-job-apply" target="_blank" rel="noopener noreferrer"><i class="fas fa-external-link-alt me-1" aria-hidden="true"></i>Apply on External Site</a>
+                                        {% endif %}
+                                        <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-primary featured-job-details"><i class="fas fa-info-circle me-1" aria-hidden="true"></i>View Details</a>
+                                    </div>
                                 </div>
                             </div>
                         </div>

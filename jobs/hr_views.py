@@ -1,5 +1,5 @@
 """Small, strictly career-scoped analytics dashboard for HR operators."""
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q
@@ -23,10 +23,14 @@ def hr_dashboard(request):
                  .values('month').annotate(total=Count('pk')).order_by('month'))
     monthly = {point['month'].strftime('%Y-%m'):point['total'] for point in trend}
     from calendar import month_name
+    # The project runs with USE_TZ=False. timezone.localdate() would raise
+    # ValueError on its naive timezone.now() result; always get the current
+    # calendar date in Django's configured (potentially activated) timezone.
+    today = datetime.now(timezone.get_current_timezone()).date()
     labels, counts = [], []
     for months_back in range(5, -1, -1):
-        year = timezone.localdate().year
-        month = timezone.localdate().month - months_back
+        year = today.year
+        month = today.month - months_back
         while month < 1:
             year -= 1
             month += 12
