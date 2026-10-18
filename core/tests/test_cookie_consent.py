@@ -48,3 +48,34 @@ class CookieConsentTests(TestCase):
         response = middleware(RequestFactory().get('/'))
         self.assertIn(b'norsuCookieConsent', response.content)
         self.assertIn(b'</body>', response.content)
+
+    def test_first_visit_notice_is_visible_without_script_or_state_fetch(self):
+        request = RequestFactory().get('/')
+        response = CookieConsentBannerMiddleware(
+            lambda req: HttpResponse('<html><body>Welcome</body></html>', content_type='text/html')
+        )(request)
+        html = response.content.decode()
+        self.assertIn('id="norsuCookieConsent"', html)
+        self.assertIn('This website uses cookies', html)
+        self.assertNotIn('data-consent-endpoint="/api/privacy/cookie-consent/" hidden', html)
+        self.assertIn('private', response['Cache-Control'])
+        self.assertIn('Cookie', response['Vary'])
+
+    def test_saved_necessary_choice_hides_notice_and_shows_settings(self):
+        req = RequestFactory().get('/')
+        req.COOKIES[CONSENT_COOKIE] = signing.dumps('necessary', salt=PURPOSE)
+        response = CookieConsentBannerMiddleware(
+            lambda request: HttpResponse('<html><body>Hello</body></html>', content_type='text/html')
+        )(req)
+        html = response.content.decode()
+        self.assertIn('data-consent-endpoint="/api/privacy/cookie-consent/" hidden', html)
+        self.assertIn('id="norsuCookieSettings"', html)
+        self.assertNotIn('id="norsuCookieSettings" type="button" hidden', html)
+
+    def test_duplicate_component_is_not_injected(self):
+        request = RequestFactory().get('/')
+        raw = '<html><body><div id="norsuCookieConsent"></div></body></html>'
+        response = CookieConsentBannerMiddleware(
+            lambda req: HttpResponse(raw, content_type='text/html')
+        )(request)
+        self.assertEqual(response.content.decode(), raw)
