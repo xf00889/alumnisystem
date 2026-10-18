@@ -20,6 +20,7 @@ from accounts.models import Profile, Experience
 from .forms import AlumniForm, AlumniFilterForm, AlumniSearchForm, AlumniDocumentForm
 from .directory_search import normalize_directory_search, with_alumni_name_search
 import csv
+import calendar
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -434,7 +435,34 @@ def alumni_list(request):
         paginator = Paginator(queryset, 12)
         alumni_page = paginator.get_page(request.GET.get('page'))
         
+        # The tracer-response employability panel is opt-in, to avoid expensive
+        # survey queries on every directory request. It uses the same filtered
+        # queryset and the existing campus access restrictions.
+        employability_report = None
+        employability_error = None
+        if can_view_alumni_details and request.GET.get('employability') == '1':
+            from .directory_employability import build_directory_employability
+            try:
+                employability_report = build_directory_employability(queryset, request.GET)
+            except ValueError as error:
+                employability_error = str(error)
+
+        from zoneinfo import ZoneInfo
+        report_today = datetime.now(ZoneInfo(settings.TIME_ZONE)).date()
+        selected_period = request.GET.get('period', 'annual')
+        if selected_period not in ('monthly', 'quarterly', 'semi_annual', 'annual'):
+            selected_period = 'annual'
         context = {
+            'employability_report': employability_report,
+            'employability_error': employability_error,
+            'employability_period': selected_period,
+            'employability_month_choices': [(i, calendar.month_name[i]) for i in range(1,13)],
+            'employability_quarter_choices': [(i, f'Q{i}') for i in range(1,5)],
+            'employability_half_choices': [(1, 'January–June'), (2, 'July–December')],
+            'employability_year': request.GET.get('year', str(report_today.year)),
+            'employability_month': request.GET.get('month', str(report_today.month)),
+            'employability_quarter': request.GET.get('quarter', str((report_today.month - 1) // 3 + 1)),
+            'employability_half': request.GET.get('half', str(1 if report_today.month <= 6 else 2)),
             'alumni_list': alumni_page,
             'graduation_years': graduation_years,
             'courses': courses,
