@@ -7,16 +7,40 @@
   let modalReturnFocus = null;
   const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isAndroid = /android/i.test(navigator.userAgent);
+  let installed = false;
   const installButtons = [...document.querySelectorAll('[data-pwa-install]')];
   const updateButtons = [...document.querySelectorAll('[data-pwa-update]')];
   const help = document.getElementById('norsuPwaHelp');
   const helpPanel = help && help.querySelector('.norsu-pwa-help__panel');
+  const helpInstructions = document.getElementById('norsuPwaHelpInstructions');
+  const floatingButtons = installButtons.filter((button) => button.classList.contains('norsu-pwa-install-fab'));
+  const menuButtons = installButtons.filter((button) => !button.classList.contains('norsu-pwa-install-fab'));
+  const consentIsOpen = () => {
+    const notice = document.getElementById('norsuCookieConsent');
+    return Boolean(notice && !notice.hidden);
+  };
   const setVisible = (controls, visible) => controls.forEach((control) => { control.hidden = !visible; });
+  const refreshInstallButtons = () => {
+    const available = !installed && !isStandalone();
+    // A native prompt may not be offered immediately. Keep a functional
+    // installation-instructions fallback instead of losing the floating CTA.
+    setVisible(menuButtons, available);
+    setVisible(floatingButtons, available && !consentIsOpen());
+  };
+  document.addEventListener('norsu:cookie-visibility-changed', refreshInstallButtons);
   const showHelp = () => {
     if (!help) return;
     modalReturnFocus = document.activeElement;
+    if (helpInstructions) {
+      helpInstructions.textContent = isiOS
+        ? 'In Safari, tap Share, then choose Add to Home Screen. Open as Web App if offered.'
+        : isAndroid
+          ? 'In your browser menu, choose Install app or Add to Home screen when available. If it is unavailable, try Chrome outside private browsing.'
+          : 'Look for Install app or Install page as app in your browser menu or address bar. Some browsers and private windows do not support installation.';
+    }
     help.hidden = false;
-    helpPanel.focus();
+    if (helpPanel) helpPanel.focus();
   };
   const closeHelp = () => {
     if (!help) return;
@@ -35,30 +59,39 @@
     });
   }
 
-  setVisible(installButtons, isiOS && !isStandalone());
+  refreshInstallButtons();
   installButtons.forEach((button) => button.addEventListener('click', async () => {
     if (installPrompt) {
       const prompt = installPrompt;
       installPrompt = null;
-      setVisible(installButtons, false);
-      try { await prompt.prompt(); await prompt.userChoice; } catch (_) { /* browser decides */ }
-    } else if (isiOS && !isStandalone()) {
+      try {
+        await prompt.prompt();
+        const choice = await prompt.userChoice;
+        if (choice && choice.outcome === 'accepted') {
+          // appinstalled will confirm completion; until then the controls stay
+          // available to show instructions if installation never completes.
+        }
+      } catch (_) { /* Native prompt may be cancelled or unavailable. */ }
+      refreshInstallButtons();
+    } else if (!isStandalone()) {
       showHelp();
     }
   }));
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     installPrompt = event;
-    if (!isStandalone()) setVisible(installButtons, true);
+    refreshInstallButtons();
   });
   window.addEventListener('appinstalled', () => {
     installPrompt = null;
-    setVisible(installButtons, false);
+    installed = true;
+    refreshInstallButtons();
   });
 
   window.addEventListener('load', async () => {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js', {scope: '/', updateViaCache: 'none'});
+      refreshInstallButtons();
       const showUpdate = () => setVisible(updateButtons, Boolean(registration.waiting && navigator.serviceWorker.controller));
       showUpdate();
       registration.addEventListener('updatefound', () => {

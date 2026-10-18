@@ -55,3 +55,25 @@ body.alumni-portal .alumni-more-account button[data-pwa-push-disable][hidden] {d
 @media(prefers-reduced-motion:reduce) {
   button.norsu-pwa-install-fab[data-pwa-install] {transform:none!important}
 }
+
+/* A visible privacy choice has priority over the public floating install CTA.
+   Account-menu actions and the PWA update control are unaffected. */
+html.norsu-cookie-choice-open button.norsu-pwa-install-fab[data-pwa-install],
+html:has(#norsuCookieConsent:not([hidden])) button.norsu-pwa-install-fab[data-pwa-install] {
+  display:none!important;
+}
+
+button.norsu-pwa-install-fab[data-pwa-install] {
+  z-index:1080;
+}
+@media(max-width:600px) {
+  button.norsu-pwa-install-fab[data-pwa-install] {
+    bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+    left:12px;right:12px;
+    max-width:calc(100vw - 24px);
+  }
+  /* Keep the existing alumni mobile bottom navigation usable. */
+  body.alumni-portal button.norsu-pwa-install-fab[data-pwa-install] {
+    bottom:calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+}

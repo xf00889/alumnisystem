@@ -17,14 +17,26 @@
       return part ? decodeURIComponent(part.slice(name.length + 1)) : '';
     }
 
+    // Other floating controls (including PWA install) follow the actual
+    // banner visibility, never the current analytics opt-in value.
+    function announceVisibility() {
+      const visible = !root.hidden;
+      document.documentElement.classList.toggle('norsu-cookie-choice-open', visible);
+      document.dispatchEvent(new CustomEvent('norsu:cookie-visibility-changed', {
+        detail: { visible: visible }
+      }));
+    }
+
     function showPreferences() {
       root.hidden = false;
+      announceVisibility();
       if (error) error.hidden = true;
       if (closeButton) closeButton.hidden = !hasSavedChoice;
     }
 
     function dismissPreferences() {
       root.hidden = true;
+      announceVisibility();
       if (error) error.hidden = true;
       if (closeButton) closeButton.hidden = true;
     }
@@ -118,6 +130,7 @@
       window.history.replaceState(window.history.state, '', cleanUrl);
     }
 
+    announceVisibility();
     if (!root.hidden) {
       ensureCsrfToken(false).catch(function () { /* Retried on user selection */ });
     }
