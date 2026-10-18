@@ -117,6 +117,7 @@ MIDDLEWARE = [
     'csp.middleware.CSPMiddleware',  # Add CSP middleware
     'core.middleware.site_middleware.EnsureSiteMiddleware',  # Ensure site is always configured
     'core.middleware.visitor_analytics.VisitorAnalyticsMiddleware',  # Optional, privacy-limited site visitor counts
+    'core.middleware.cookie_consent.CookieConsentBannerMiddleware',  # Display cookie choices on HTML pages
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
