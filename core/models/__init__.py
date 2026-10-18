@@ -27,6 +27,7 @@ from .visitor_analytics import DailyVisitor
 from .contact import Address, ContactInfo
 from .content import Post, Comment, Reaction
 from .notifications import Notification, NotificationPreference
+from .web_push import WebPushSubscription, WebPushDelivery
 from .smtp_config import SMTPConfig
 from .brevo_config import BrevoConfig
 from .email_provider import EmailProvider
@@ -49,6 +50,8 @@ __all__ = [
     'Reaction',
     'Notification',
     'NotificationPreference',
+    'WebPushSubscription',
+    'WebPushDelivery',
     'SMTPConfig',
     'BrevoConfig',
     'EmailProvider',
