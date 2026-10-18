@@ -14,17 +14,21 @@
 <body class="hr-workspace">
 <header class="hr-topbar"><div class="hr-topbar-inner">
 <a class="hr-identity" href="{% url 'jobs:hr_dashboard' %}"><img src="{% static 'images/alumni_logo.webp' %}" width="38" height="38" alt="NORSU Alumni"><span>NORSU <strong>HR Workspace</strong></span></a>
-<nav aria-label="HR navigation" class="hr-nav">
+<button type="button" class="hr-nav-toggle" aria-controls="hr-primary-nav" aria-expanded="false" aria-label="Toggle HR navigation"><i class="fas fa-bars" aria-hidden="true"></i> Menu</button>
+<nav id="hr-primary-nav" aria-label="HR navigation" class="hr-nav">
 <a class="{% if request.resolver_match.url_name == 'hr_dashboard' %}active{% endif %}" {% if request.resolver_match.url_name == 'hr_dashboard' %}aria-current="page"{% endif %} href="{% url 'jobs:hr_dashboard' %}">Overview</a>
 <a class="{% if request.resolver_match.url_name == 'admin_job_board' %}active{% endif %}" href="{% url 'jobs:admin_job_board' %}">Job Board</a>
 <a class="{% if request.resolver_match.url_name == 'manage_jobs' %}active{% endif %}" href="{% url 'jobs:manage_jobs' %}">Manage Jobs</a>
 <a class="{% if request.resolver_match.url_name == 'post_job' %}active{% endif %}" href="{% url 'jobs:post_job' %}">Post Job</a>
 <a class="{% if request.GET.applications == 'with' %}active{% endif %}" href="{% url 'jobs:manage_jobs' %}?applications=with">Applications</a>
 <a class="{% if request.resolver_match.url_name == 'staff_profile' %}active{% endif %}" href="{% url 'accounts:staff_profile' %}">My Profile</a>
-</nav><form method="post" action="{% url 'account_logout' %}">{% csrf_token %}<button class="hr-signout" type="submit">Sign out</button></form>
+<form method="post" action="{% url 'account_logout' %}" class="hr-nav-signout">{% csrf_token %}<button class="hr-signout" type="submit">Sign out</button></form>
+</nav>
 </div></header>
+<div class="hr-nav-backdrop" aria-hidden="true" hidden></div>
 {% if messages %}<section class="container-fluid hr-flashes" aria-label="Notifications">{% for message in messages %}<div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>{% endfor %}</section>{% endif %}
 <main class="hr-main" id="main-content">{% block content %}{% endblock %}</main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
+<script src="{% static 'js/admin/hr-navigation.js' %}" defer></script>
 {% block extra_js %}{% endblock %}
 </body></html>
