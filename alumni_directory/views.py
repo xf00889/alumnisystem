@@ -18,6 +18,7 @@ from django.conf import settings
 from django.contrib import messages
 from accounts.models import Profile, Experience
 from .forms import AlumniForm, AlumniFilterForm, AlumniSearchForm, AlumniDocumentForm
+from .directory_search import normalize_directory_search, with_alumni_name_search
 import csv
 from datetime import datetime
 
@@ -360,30 +361,27 @@ def alumni_list(request):
         can_view_alumni_details = is_admin(request.user)
 
         # Apply filters
-        search_query = request.GET.get('search', '').strip()
+        search_query = normalize_directory_search(request.GET.get('search', ''))
         if search_query:
+            queryset, name_match = with_alumni_name_search(queryset, search_query)
             if can_view_alumni_details:
-                # Create a lookup for college display names
+                # Keep the existing staff-only directory search fields.
                 college_lookup = Q()
                 for code, name in Alumni.COLLEGE_CHOICES:
                     if search_query.lower() in name.lower():
                         college_lookup |= Q(college=code)
 
                 queryset = queryset.filter(
-                    Q(user__first_name__icontains=search_query) |
-                    Q(user__last_name__icontains=search_query) |
+                    name_match |
                     Q(course__icontains=search_query) |
                     Q(city__icontains=search_query) |
                     Q(province__icontains=search_query) |
                     Q(current_company__icontains=search_query) |
                     Q(job_title__icontains=search_query) |
-                    college_lookup  # Include college name search
+                    college_lookup
                 )
             else:
-                queryset = queryset.filter(
-                    Q(user__first_name__icontains=search_query) |
-                    Q(user__last_name__icontains=search_query)
-                )
+                queryset = queryset.filter(name_match)
         
         # Graduation Year filter
         grad_year = [y for y in request.GET.getlist('graduation_year') if y]
@@ -431,7 +429,7 @@ def alumni_list(request):
             queryset = Alumni.objects.none()
         
         # Get total counts and paginate the directory results.
-        total_alumni = Alumni.objects.count()
+        total_alumni = initial_count
         total_registered = queryset.count()
         paginator = Paginator(queryset, 12)
         alumni_page = paginator.get_page(request.GET.get('page'))

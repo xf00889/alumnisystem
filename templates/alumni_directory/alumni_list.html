@@ -37,7 +37,10 @@
                            name="search" 
                            class="search-input" 
                            placeholder="{% if can_view_alumni_details %}Enter name, program, college, or location...{% else %}Enter alumni name...{% endif %}"
+                           aria-describedby="alumniSearchHint"
+                           maxlength="100"
                            value="{{ selected_filters.search }}">
+                    <small id="alumniSearchHint" class="search-hint">Search full names or use * in names (for example, Ren* or *Andam).</small>
                 </div>
                 {% if can_view_alumni_details %}
                 <div class="search-group">
@@ -85,9 +88,15 @@
 
         <!-- Statistics Section -->
         <div class="stats-section">
-            <div class="stat-card">
+            <div class="stat-card"{% if any_filter_active %} role="status" aria-live="polite"{% endif %}>
+                {% if any_filter_active %}
+                <span class="stat-number">{{ total_registered }}</span>
+                <span class="stat-label">Matching Alumni</span>
+                <small class="stat-context">Out of {{ total_alumni }} total alumni</small>
+                {% else %}
                 <span class="stat-number">{{ total_alumni }}</span>
                 <span class="stat-label">Total Alumni</span>
+                {% endif %}
             </div>
             <div class="stat-card">
                 <span class="stat-number">{{ graduation_years_count }}</span>
@@ -237,12 +246,12 @@
                  <ul class="pagination">
                      {% if alumni_list.has_previous %}
                      <li class="page-item">
-                         <a class="page-link" href="?page=1{% if selected_filters.search %}&search={{ selected_filters.search }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">
+                         <a class="page-link" href="?page=1{% if selected_filters.search %}&search={{ selected_filters.search|urlencode }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">
                              &laquo;&laquo;
                          </a>
                      </li>
                      <li class="page-item">
-                         <a class="page-link" href="?page={{ alumni_list.previous_page_number }}{% if selected_filters.search %}&search={{ selected_filters.search }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">
+                         <a class="page-link" href="?page={{ alumni_list.previous_page_number }}{% if selected_filters.search %}&search={{ selected_filters.search|urlencode }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">
                              &laquo;
                          </a>
                      </li>
@@ -255,19 +264,19 @@
                              </li>
                          {% elif num > alumni_list.number|add:'-3' and num < alumni_list.number|add:'3' %}
                              <li class="page-item">
-                                 <a class="page-link" href="?page={{ num }}{% if selected_filters.search %}&search={{ selected_filters.search }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">{{ num }}</a>
+                                 <a class="page-link" href="?page={{ num }}{% if selected_filters.search %}&search={{ selected_filters.search|urlencode }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">{{ num }}</a>
                              </li>
                          {% endif %}
                      {% endfor %}
 
                      {% if alumni_list.has_next %}
                      <li class="page-item">
-                         <a class="page-link" href="?page={{ alumni_list.next_page_number }}{% if selected_filters.search %}&search={{ selected_filters.search }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">
+                         <a class="page-link" href="?page={{ alumni_list.next_page_number }}{% if selected_filters.search %}&search={{ selected_filters.search|urlencode }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">
                              &raquo;
                          </a>
                      </li>
                      <li class="page-item">
-                         <a class="page-link" href="?page={{ alumni_list.paginator.num_pages }}{% if selected_filters.search %}&search={{ selected_filters.search }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">
+                         <a class="page-link" href="?page={{ alumni_list.paginator.num_pages }}{% if selected_filters.search %}&search={{ selected_filters.search|urlencode }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">
                              &raquo;&raquo;
                          </a>
                      </li>
