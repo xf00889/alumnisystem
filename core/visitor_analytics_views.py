@@ -8,12 +8,13 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from core.models.visitor_analytics import DailyVisitor
+from core.visitor_analytics_time import visitor_local_date
 
 
 @user_passes_test(lambda user: user.is_authenticated and user.is_active and user.is_superuser)
 def visitor_analytics_dashboard(request):
     days = 7 if request.GET.get('days') == '7' else 30
-    today = timezone.localdate()
+    today = visitor_local_date()
     since = today - timedelta(days=days-1)
     records = DailyVisitor.objects.filter(day__gte=since, day__lte=today)
     rows = (records.values('ip_address').annotate(

@@ -15,6 +15,8 @@ from django.db import DatabaseError, IntegrityError
 from django.db.models import F
 from django.utils import timezone
 
+from core.visitor_analytics_time import visitor_local_date
+
 logger = logging.getLogger(__name__)
 SKIP_PREFIXES = (
     '/admin/', '/admin-dashboard/', '/static/', '/media/', '/api/',
@@ -69,7 +71,7 @@ class VisitorAnalyticsMiddleware:
         if not ip:
             return response
         now = timezone.now()
-        day = timezone.localdate(now)
+        day = visitor_local_date()
         # This is a sampled hit counter, not an exact request count.
         digest = hmac.new(settings.SECRET_KEY.encode(), f'{day}:{ip}'.encode(), hashlib.sha256).hexdigest()
         key = f'norsu:visitor:{digest}'

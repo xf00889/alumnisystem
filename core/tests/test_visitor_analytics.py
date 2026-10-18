@@ -1,5 +1,5 @@
 """Visitor privacy, IP trust boundary, and admin authorization regression tests."""
-from datetime import timedelta
+from datetime import date, datetime, timedelta, timezone as dt_timezone
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from core.middleware.visitor_analytics import VisitorAnalyticsMiddleware, client_ip
 from core.models.visitor_analytics import DailyVisitor
+from core.visitor_analytics_time import visitor_local_date
 from setup.models import SetupState
 
 
@@ -61,6 +62,20 @@ class VisitorAnalyticsTests(TestCase):
         from django.conf import settings
         now = timezone.now()
         old = now - timedelta(days=40)
-        DailyVisitor.objects.create(day=timezone.localdate(old),ip_address='198.51.100.11',first_seen=old,last_seen=old)
+        DailyVisitor.objects.create(day=visitor_local_date(old),ip_address='198.51.100.11',first_seen=old,last_seen=old)
         call_command('purge_visitor_analytics')
         self.assertFalse(DailyVisitor.objects.exists())
+
+    @override_settings(USE_TZ=False, TIME_ZONE='Asia/Manila')
+    def test_naive_datetime_local_day_and_dashboard_render(self):
+        # Production uses USE_TZ=False; timezone.localdate() raised ValueError.
+        naive = datetime(2026, 10, 18, 8, 30)
+        self.assertEqual(visitor_local_date(naive), date(2026, 10, 18))
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse('core:visitor_analytics'), secure=True)
+        self.assertEqual(response.status_code, 200)
+
+    @override_settings(USE_TZ=True, TIME_ZONE='Asia/Manila')
+    def test_aware_datetime_converts_to_local_day(self):
+        utc_value = datetime(2026, 10, 17, 18, 30, tzinfo=dt_timezone.utc)
+        self.assertEqual(visitor_local_date(utc_value), date(2026, 10, 18))
