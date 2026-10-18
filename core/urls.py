@@ -18,9 +18,12 @@ from .view_handlers import user_management_views
 # Import SEO management views from view_handlers
 from .view_handlers import seo_admin_views
 
+from . import privacy_views
+
 app_name = 'core'
 
 urlpatterns = [
+    path('api/privacy/cookie-consent/', privacy_views.cookie_consent, name='cookie_consent'),
     path('security/csrf-token/', refresh_csrf_token, name='refresh_csrf_token'),
     path('', views.home, name='home'),
     path('superuser/', views.SuperuserCreationView.as_view(), name='create_superuser'),  # One-time superuser creation
