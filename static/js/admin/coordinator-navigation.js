@@ -7,7 +7,7 @@
   const toggle = header.querySelector('.coordinator-nav-toggle');
   const backdrop = document.querySelector('.coordinator-nav-backdrop');
   if (!nav || !toggle) return;
-  const mobileQuery = window.matchMedia('(max-width: 1220px)');
+  const mobileQuery = window.matchMedia('(max-width: 1399px)');
   const groups = Array.from(nav.querySelectorAll('.coordinator-menu-group'));
 
   function closeGroups(except = null) {
