@@ -116,6 +116,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'csp.middleware.CSPMiddleware',  # Add CSP middleware
     'core.middleware.site_middleware.EnsureSiteMiddleware',  # Ensure site is always configured
+    'core.middleware.visitor_analytics.VisitorAnalyticsMiddleware',  # Optional, privacy-limited site visitor counts
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -288,12 +289,7 @@ ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 ACCOUNT_EMAIL_VERIFICATION = 'none'  # We handle email verification manually in our custom signup flow
 ACCOUNT_LOGOUT_ON_GET = True
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = False  # Don't logout on password change
-# Public key is safe to expose. Private key is NEVER sent to browsers or templates.
-WEB_PUSH_VAPID_PUBLIC_KEY = config('WEB_PUSH_VAPID_PUBLIC_KEY', default='')
-WEB_PUSH_VAPID_PRIVATE_KEY = config('WEB_PUSH_VAPID_PRIVATE_KEY', default='')
-WEB_PUSH_VAPID_SUBJECT = config('WEB_PUSH_VAPID_SUBJECT', default='')
-
-LOGIN_URL = 'account_login' 
+LOGIN_URL = 'account_login'
 LOGIN_REDIRECT_URL = 'core:home'
 ACCOUNT_LOGOUT_REDIRECT_URL = 'core:home'
 # ACCOUNT_SIGNUP_REDIRECT_URL = 'accounts:custom_signup_redirect'  # Disabled - handled manually in enhanced_signup view
@@ -886,3 +882,11 @@ LOCATION_GEOCODER_CONTACT_EMAIL = config('LOCATION_GEOCODER_CONTACT_EMAIL', defa
 # in the provider dashboard. They are intentionally rendered only on staff pages.
 LOCATION_CARTO_BASEMAP_KEY = config('LOCATION_CARTO_BASEMAP_KEY', default='').strip()
 LOCATION_MAPTILER_BASEMAP_KEY = config('LOCATION_MAPTILER_BASEMAP_KEY', default='').strip()
+
+# Site visitor IP analytics is OPT-IN: update the privacy notice and configure
+# the reverse proxy safely before enabling. Only superusers may view raw IPs.
+VISITOR_ANALYTICS_ENABLED = config('VISITOR_ANALYTICS_ENABLED', default=False, cast=bool)
+VISITOR_TRUSTED_PROXY_IPS = tuple(
+    value.strip() for value in config('VISITOR_TRUSTED_PROXY_IPS', default='').split(',') if value.strip()
+)
+VISITOR_ANALYTICS_RETENTION_DAYS = config('VISITOR_ANALYTICS_RETENTION_DAYS', default=30, cast=int)

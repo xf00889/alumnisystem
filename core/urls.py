@@ -1,6 +1,7 @@
 from django.urls import path
 from . import admin_views
 from . import coordinator_views
+from . import visitor_analytics_views
 from . import smtp_admin_views
 from . import recaptcha_admin_views, recaptcha_analytics_views
 from . import sso_admin_views
@@ -35,6 +36,7 @@ urlpatterns = [
 
     # Admin Dashboard
     path('admin-dashboard/', admin_views.admin_dashboard, name='admin_dashboard'),
+    path('admin-dashboard/visitors/', visitor_analytics_views.visitor_analytics_dashboard, name='visitor_analytics'),
     path('coordinator/dashboard/', coordinator_views.coordinator_dashboard, name='coordinator_dashboard'),
     path('api/dashboard-analytics/', admin_views.dashboard_analytics_api, name='dashboard_analytics_api'),
     path('api/alumni-by-college/', admin_views.alumni_by_college_api, name='alumni_by_college_api'),
