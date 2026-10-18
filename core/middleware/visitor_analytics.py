@@ -14,6 +14,9 @@ from django.core.cache import cache
 from django.db import DatabaseError, IntegrityError
 from django.db.models import F
 from django.utils import timezone
+from core.privacy_consent import (analytics_consented, visitor_token, new_visitor_token,
+    set_private_cookie, VISITOR_COOKIE, VISITOR_MAX_AGE, PURPOSE)
+from django.core import signing
 
 from core.visitor_analytics_time import visitor_local_date
 
@@ -55,7 +58,7 @@ class VisitorAnalyticsMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
-        if not getattr(settings, 'VISITOR_ANALYTICS_ENABLED', False):
+        if not getattr(settings, 'VISITOR_ANALYTICS_ENABLED', False) or not analytics_consented(request):
             return response
         path = request.path
         if (request.method != 'GET' or response.status_code != 200
@@ -70,6 +73,13 @@ class VisitorAnalyticsMiddleware:
         ip = client_ip(request)
         if not ip:
             return response
+        token = visitor_token(request)
+        if not token:
+            # Consent still valid but browser ID cookie has expired or been cleared.
+            # Renew without user action, only while affirmative analytics consent holds.
+            token = new_visitor_token()
+            set_private_cookie(response, VISITOR_COOKIE,
+                               signing.dumps(token, salt=PURPOSE + '-visitor'), VISITOR_MAX_AGE)
         now = timezone.now()
         day = visitor_local_date()
         # This is a sampled hit counter, not an exact request count.
@@ -81,7 +91,17 @@ class VisitorAnalyticsMiddleware:
         except Exception:
             pass  # Cache outage must never break site navigation.
         try:
-            from core.models.visitor_analytics import DailyVisitor
+            from core.models.visitor_analytics import DailyVisitor, DailyBrowserVisit
+            # Do not persist visitor identifier; use a stable keyed hash instead.
+            browser_digest = hmac.new(settings.SECRET_KEY.encode(), token.encode(), hashlib.sha256).hexdigest()
+            browser, is_new = DailyBrowserVisit.objects.get_or_create(
+                day=day, visitor_key=browser_digest,
+                defaults={'first_seen': now, 'last_seen': now, 'sampled_page_loads': 1},
+            )
+            if not is_new:
+                DailyBrowserVisit.objects.filter(pk=browser.pk).update(
+                    last_seen=now, sampled_page_loads=F('sampled_page_loads') + 1,
+                )
             visitor, created = DailyVisitor.objects.get_or_create(
                 day=day, ip_address=ip,
                 defaults={'first_seen': now, 'last_seen': now, 'sampled_page_loads': 1},

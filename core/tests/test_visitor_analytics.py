@@ -7,9 +7,11 @@ from django.http import HttpResponse
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from django.core import signing
 
 from core.middleware.visitor_analytics import VisitorAnalyticsMiddleware, client_ip
-from core.models.visitor_analytics import DailyVisitor
+from core.privacy_consent import CONSENT_COOKIE, VISITOR_COOKIE, PURPOSE, analytics_consented
+from core.models.visitor_analytics import DailyVisitor, DailyBrowserVisit
 from core.visitor_analytics_time import visitor_local_date
 from setup.models import SetupState
 
@@ -27,13 +29,36 @@ class VisitorAnalyticsTests(TestCase):
         self.factory = RequestFactory()
         self.middleware = VisitorAnalyticsMiddleware(lambda request: HttpResponse('<html>ok</html>', content_type='text/html'))
 
+    def consenting(self, path='/', **kwargs):
+        request = self.factory.get(path, REMOTE_ADDR='198.51.100.10', HTTP_USER_AGENT='Mozilla/5.0', **kwargs)
+        request.COOKIES[CONSENT_COOKIE] = signing.dumps('analytics', salt=PURPOSE)
+        request.COOKIES[VISITOR_COOKIE] = signing.dumps('a' * 43, salt=PURPOSE + '-visitor')
+        return request
+
     def test_stores_one_daily_record_and_deduplicates(self):
-        request = self.factory.get('/about-us/', REMOTE_ADDR='198.51.100.10', HTTP_USER_AGENT='Mozilla/5.0')
+        request = self.consenting('/about-us/')
         with patch('core.middleware.visitor_analytics.cache.add', return_value=True):
             self.middleware(request)
             self.middleware(request)
         self.assertEqual(DailyVisitor.objects.count(), 1)
+        self.assertEqual(DailyBrowserVisit.objects.count(), 1)
         self.assertEqual(DailyVisitor.objects.get().sampled_page_loads, 2)
+
+    def test_analytics_disabled_without_valid_consent(self):
+        request = self.factory.get('/about-us/', REMOTE_ADDR='198.51.100.10')
+        self.middleware(request)
+        self.assertFalse(DailyVisitor.objects.exists())
+        self.assertFalse(DailyBrowserVisit.objects.exists())
+        request.COOKIES[CONSENT_COOKIE] = signing.dumps('necessary', salt=PURPOSE)
+        self.middleware(request)
+        self.assertFalse(DailyVisitor.objects.exists())
+
+    def test_expired_visitor_cookie_renews_only_for_opted_in_browser(self):
+        request = self.factory.get('/about-us/', REMOTE_ADDR='198.51.100.10')
+        request.COOKIES[CONSENT_COOKIE] = signing.dumps('analytics', salt=PURPOSE)
+        response = self.middleware(request)
+        self.assertIn(VISITOR_COOKIE, response.cookies)
+        self.assertEqual(DailyBrowserVisit.objects.count(), 1)
 
     def test_forwarded_header_not_trusted_from_arbitrary_client(self):
         request = self.factory.get('/', REMOTE_ADDR='198.51.100.10', HTTP_X_REAL_IP='198.51.100.99')

@@ -124,6 +124,42 @@ Material changes will be posted on this page and communicated when appropriate. 
 """.strip(),
     },
     {
+        'page_type': 'cookie-policy',
+        'title': 'Cookie Policy',
+        'summary': 'How essential cookies, optional visitor analytics, and web push permissions work in the NORSU Alumni Network.',
+        'effective_date': date(2026, 10, 18),
+        'order': 3,
+        'content': """
+## Cookies and related technologies
+
+The NORSU Alumni Network uses first-party cookies to support user sessions and account security. Optional first-party visitor analytics are used only when the visitor explicitly chooses **Accept analytics** and the feature is enabled by NORSU. An installed Progressive Web App (PWA) uses the same account and website cookie mechanisms.
+
+## Essential cookies
+
+Essential cookies include Django session identifiers (`sessionid`), CSRF protection (`csrftoken`), and a signed first-party cookie recording whether you chose **Necessary only** or **Accept analytics** (`norsu_privacy_choice`). They enable account login, request security and remembering your preference. The consent-choice cookie expires after up to 180 days, and session cookies follow NORSU's authentication and security settings. Essential services remain available if you decline optional analytics.
+
+## Optional analytics cookie
+
+When you opt into analytics, the site may also set `norsu_visitor_id`, a random, first-party, signed browser identifier with a maximum lifetime of 30 days. The identifier is used to estimate repeat visits; the server stores a keyed hash, not the raw visitor identifier. With consent, the restricted Visitor Analytics module may also record IP addresses, daily dates and sampled page loads when tracking is enabled. IP addresses and browser identifiers are not reliable measures of distinct people. Visitor analytics records are retained for up to the configured period (currently 30 days), provided the scheduled purge runs. You can decline or withdraw this optional tracking at any time.
+
+## Analytics choices and withdrawal
+
+Choose **Necessary only** to avoid optional first-party visitor analytics or **Accept analytics** to permit them. Use the **Cookie settings** control to change your selection later. Withdrawing consent removes the optional identifier cookie from that browser and prevents future optional Django visitor records from being collected through the consent-gated module; previously collected records remain subject to retention rules and any applicable privacy request.
+
+## Web push notifications
+
+Browser notifications are separate from cookie analytics consent. If you enable push alerts, the browser stores notification permission and a push subscription for that device. Authorized push services process the delivery endpoint necessary to send the alert. You may disable notifications using site controls or browser/device permission settings.
+
+## Other hosting, security and third-party services
+
+Some third-party components (such as Google sign-in, CAPTCHA, email, hosting/CDN services, or external sites) may set their own cookies or process connection information according to their own privacy notices. Cloudflare Web Analytics, if independently enabled at the infrastructure layer, must be reviewed separately by the site administrator; this on-site preference control cannot by itself suppress scripts injected by Cloudflare upstream.
+
+## Contact and updates
+
+See the [Privacy Notice](/legal/privacy/) and [Data Privacy Request](/legal/data-privacy-request/) pages for processing details and how to exercise your rights. Material updates to this policy will be published on the site. The Office of Alumni Affairs and NORSU's Data Protection Officer should review this notice before deployment.
+""".strip(),
+    },
+    {
         'page_type': 'community-guidelines',
         'title': 'Community Guidelines',
         'summary': 'Standards for safe, respectful, and useful participation in the alumni community.',

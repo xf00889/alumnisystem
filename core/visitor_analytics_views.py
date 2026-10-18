@@ -7,7 +7,7 @@ from django.db.models import Count, Max, Sum
 from django.shortcuts import render
 from django.utils import timezone
 
-from core.models.visitor_analytics import DailyVisitor
+from core.models.visitor_analytics import DailyVisitor, DailyBrowserVisit
 from core.visitor_analytics_time import visitor_local_date
 
 
@@ -27,7 +27,11 @@ def visitor_analytics_dashboard(request):
     for item in chart:
         item['height'] = round(100 * item['count'] / peak)
     now = timezone.now()
+    browser_records = DailyBrowserVisit.objects.filter(day__gte=since, day__lte=today)
+    returning = browser_records.values('visitor_key').annotate(active_days=Count('day', distinct=True)).filter(active_days__gte=2).count()
     context = {
+        'consenting_browsers': browser_records.values('visitor_key').distinct().count(),
+        'returning_browsers': returning,
         'analytics_enabled': settings.VISITOR_ANALYTICS_ENABLED,
         'days': days,
         'retention_days': settings.VISITOR_ANALYTICS_RETENTION_DAYS,

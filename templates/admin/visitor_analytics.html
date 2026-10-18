@@ -8,7 +8,7 @@
     <div>
       <p class="visitor-dashboard__eyebrow">Administration / Analytics</p>
       <h1>Site visitors</h1>
-      <p>Unique IP addresses and sampled page loads · past {{ days }} days</p>
+      <p>Opt-in browser visitors, unique IPs and sampled page loads · past {{ days }} days</p>
     </div>
     <nav class="visitor-dashboard__period" aria-label="Visitor analytics period">
       <a href="?days=7" aria-current="{% if days == 7 %}true{% else %}false{% endif %}">7 days</a>
@@ -18,6 +18,10 @@
   {% if not analytics_enabled %}
   <div class="visitor-dashboard__notice" role="status"><strong>Visitor tracking is disabled.</strong> Set VISITOR_ANALYTICS_ENABLED=True only after configuring trusted proxy IP forwarding and updating the privacy notice.</div>
   {% endif %}
+  <section class="visitor-dashboard__stats" aria-label="Consenting browser summary">
+    <article class="visitor-dashboard__stat"><p>Consenting browsers ({{ days }} days)</p><strong>{{ consenting_browsers }}</strong></article>
+    <article class="visitor-dashboard__stat"><p>Returning browsers (2+ days)</p><strong>{{ returning_browsers }}</strong></article>
+  </section>
   <section class="visitor-dashboard__stats" aria-label="Visitor summary">
     <article class="visitor-dashboard__stat"><p>Unique IPs ({{ days }} days)</p><strong>{{ unique_ips }}</strong></article>
     <article class="visitor-dashboard__stat"><p>Today's unique IPs</p><strong>{{ today_ips }}</strong></article>
@@ -40,6 +44,6 @@
       {% empty %}<tr><td colspan="4">No tracked visitors in this period.</td></tr>{% endfor %}</tbody></table>
     </div>
   </section>
-  <p class="text-muted small">One IP can be shared by multiple people; one person can use multiple IPs. Bots, opt-out visitors, and some network requests are intentionally excluded. Do not use these figures to identify individuals.</p>
+  <p class="text-muted small">One IP can be shared by multiple people; one person can use multiple IPs. Tracking requires explicit analytics consent and VISITOR_ANALYTICS_ENABLED. Bots, opt-out visitors, and some network requests are intentionally excluded. Do not use these figures to identify individuals.</p>
 </main>
 {% endblock %}
