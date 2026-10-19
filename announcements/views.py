@@ -51,12 +51,6 @@ class PublicAnnouncementListView(ListView):
                 Q(content__icontains=search_query)
             )
         
-        # Administrative priority filter; not offered on the member directory.
-        if self.get_template_names()[0] == 'announcements/announcement_list_admin.html':
-            priority = self.request.GET.get('priority', '').upper()
-            if priority in {'URGENT', 'HIGH', 'MEDIUM', 'LOW'}:
-                queryset = queryset.filter(priority_level=priority)
-
         # Apply category filter
         categories = self.request.GET.getlist('category')
         if categories:
