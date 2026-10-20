@@ -172,7 +172,7 @@ def _aggregate(cohort, hires, campus_names, college_names, employed_ids=None,
     period_totals = [sum(row['hires'][i] for row in rows) for i in range(len(buckets))]
     employed_total = len(employed_ids)
     for row in display_rows:
-        row['university_share'] = round(100 * row['employed'] / respondent_count, 2) if respondent_count else 0
+        row['university_share'] = round(100 * row['graduates'] / respondent_count, 2) if respondent_count else 0
     return {
         'rows': rows, 'display_rows': display_rows, 'graduates': respondent_count,
         'period_labels': [bucket['label'] for bucket in buckets],
@@ -187,6 +187,7 @@ def _aggregate(cohort, hires, campus_names, college_names, employed_ids=None,
         'not_recorded': respondent_count - sum(period_totals),
         'rate': round(100 * employed_total / respondent_count, 2) if respondent_count else 0,
         'rate_display': f'{100 * employed_total / respondent_count:.2f}%' if respondent_count else 'N/A',
+        'respondent_share_display': '100.00%' if respondent_count else 'N/A',
         'total_rates': [cell['rate'] for cell in cells(period_totals, respondent_count)],
     }
 
@@ -291,7 +292,7 @@ def _table_rows(report):
     for cell in report['period_total_cells']:
         totals += [cell['count'], f"{cell['rate']:.2f}%"]
     yield totals + [report['employed'], report['undated'],
-                    report['rate_display'], report['rate_display']]
+                    report['rate_display'], report['respondent_share_display']]
 
 
 def _periodized_export_report(report):

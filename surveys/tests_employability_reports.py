@@ -280,3 +280,68 @@ class EmployabilityReportTests(TestCase):
         self.assertEqual(valid_range.status_code, 200)
         self.assertEqual(valid_range.context['period_kind'], 'custom')
         self.assertEqual(len(valid_range.context['period_labels']), 1)
+
+
+@override_settings(MIDDLEWARE=TEST_MIDDLEWARE)
+class EmployabilityClarityTests(TestCase):
+    setUp = EmployabilityReportTests.setUp
+    create_alumni = EmployabilityReportTests.create_alumni
+    create_cycle = EmployabilityReportTests.create_cycle
+    respond = EmployabilityReportTests.respond
+    get_over_https = EmployabilityReportTests.get_over_https
+    params = EmployabilityReportTests.params
+    """Regression coverage for new filter clearing, missing-job-date explanation and shares."""
+
+    def test_report_has_clear_filters_link_to_unfiltered_report(self):
+        self.client.force_login(self.admin)
+        response = self.get_over_https(reverse('surveys:employability_report'), {
+            **self.params(), 'period': 'monthly', 'year': 2026, 'month': 2, 'campus': 'MAIN'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Clear filters')
+        self.assertContains(response, f'href="{reverse("surveys:employability_report")}"')
+        self.assertNotContains(response, 'Dates filter each data type by its relevant date')
+        self.assertContains(response, 'Select the period for recorded current-job start dates')
+
+    def test_undated_employment_has_explicit_explanation_not_fabricated_starts(self):
+        self.respond(self.create_cycle(), self.a3, 'Yes', '', '2026-09-20')
+        self.client.force_login(self.admin)
+        response = self.get_over_https(reverse('surveys:employability_report'), self.params())
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['undated'], 1)
+        self.assertEqual(response.context['employed'], 2)
+        self.assertEqual(response.context['total_hired'], 1)
+        self.assertContains(response, 'no valid current-job start date')
+        self.assertContains(response, 'Missing dates are never guessed')
+        self.assertEqual(response.context['period_totals'], [1, 0, 0, 0])
+
+    def test_zero_dated_starts_displays_explanation_instead_of_empty_chart(self):
+        self.client.force_login(self.admin)
+        response = self.get_over_https(reverse('surveys:employability_report'), {
+            **self.params(), 'period': 'monthly', 'year': 2026, 'month': 6
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['total_hired'], 0)
+        self.assertContains(response, 'No dated current-job starts to plot')
+        self.assertNotContains(response, '<canvas id="employabilityQuarterChart"', html=False)
+        self.assertEqual(response.context['employed'], 2)
+
+    def test_respondent_share_uses_respondent_count_not_employment_count(self):
+        self.client.force_login(self.admin)
+        response = self.get_over_https(reverse('surveys:employability_report'), self.params())
+        self.assertEqual(response.status_code, 200)
+        college_cit = next(row for row in response.context['display_rows'] if row.get('college') == 'CIT')
+        self.assertEqual(college_cit['employed'], 0)
+        self.assertEqual(college_cit['university_share'], 33.33)
+        self.assertEqual(response.context['respondent_share_display'], '100.00%')
+        csv = self.get_over_https(reverse('surveys:employability_report'), {**self.params(), 'format': 'csv'})
+        last_row = csv.content.decode('utf-8').splitlines()[-1]
+        self.assertTrue(last_row.endswith('100.00%'), last_row)
+
+    def test_no_respondents_shows_na_rate_and_share(self):
+        self.client.force_login(self.admin)
+        response = self.get_over_https(reverse('surveys:employability_report'), {
+            **self.params(), 'cohort_year': 2030
+        })
+        self.assertEqual(response.context['respondent_share_display'], 'N/A')
+        self.assertEqual(response.context['rate_display'], 'N/A')

@@ -31,7 +31,10 @@
       <div class="employability-period-control">
         {% include 'admin/components/report_period_fields.html' with employability_only=True %}
       </div>
-      <button type="submit" class="btn employability-action employability-action--primary"><i class="fas fa-filter me-1" aria-hidden="true"></i> Apply filters</button>
+      <div class="employability-filter-actions">
+        <button type="submit" class="btn employability-action employability-action--primary"><i class="fas fa-filter me-1" aria-hidden="true"></i> Apply filters</button>
+        <a class="btn employability-action employability-action--reset" href="{% url 'surveys:employability_report' %}" title="Clear all selected report filters and return to defaults"><i class="fas fa-times me-1" aria-hidden="true"></i> Clear filters</a>
+      </div>
     </form>
     {% if error %}<p class="alert alert-danger" role="alert">{{ error }}</p>{% endif %}
   </section>
@@ -40,12 +43,29 @@
     <div class="employability-stat"><span>Tracer respondents · Class {{ cohort_year }}</span><strong>{{ graduates }}</strong><small>Completed alumni tracer questionnaires</small></div>
     <div class="employability-stat"><span>Reported employed · Class {{ cohort_year }}</span><strong>{{ employed }}</strong><small>Self-reported currently employed</small></div>
     <div class="employability-stat"><span>Respondent employment rate · as of {{ as_of|date:'M j, Y' }}</span><strong>{{ rate_display }}</strong><small>Latest reported status by snapshot date; not a historical rate for {{ period.label }}</small></div>
-    <div class="employability-stat"><span>Employed · missing start date</span><strong>{{ undated }}</strong><small>Not assigned to any hiring quarter</small></div>
+    <div class="employability-stat"><span>Employed · missing/invalid start date</span><strong>{{ undated }}</strong><small>Not assigned to a reporting period without a valid current-job start date</small></div>
   </section>
+  {% if undated %}
+  <div class="employability-data-notice" role="status">
+    <i class="fas fa-info-circle" aria-hidden="true"></i>
+    <div>
+      <strong>{{ undated }} employed tracer respondent{{ undated|pluralize }} ha{{ undated|pluralize:"s,ve" }} no valid current-job start date.</strong>
+      They remain included in <strong>Reported employed ({{ employed }})</strong> and the <strong>respondent employment rate ({{ rate_display }})</strong>, but cannot be assigned to a month or quarter. Review the original tracer questionnaire to obtain or correct the date. Missing dates are never guessed from submission dates.
+    </div>
+  </div>
+  {% endif %}
   <div class="employability-charts">
     <section class="employability-panel" aria-labelledby="quarter-chart-heading">
       <h2 id="quarter-chart-heading">Current-job starts · {{ period.label }}</h2>
+      {% if total_hired %}
       <div class="employability-canvas"><canvas id="employabilityQuarterChart" role="img" aria-label="Dated current-job starts for the selected reporting period"></canvas></div>
+      {% else %}
+      <div class="employability-empty-chart" role="status">
+        <i class="fas fa-calendar-times" aria-hidden="true"></i>
+        <strong>No dated current-job starts to plot</strong>
+        <span>There are no recorded current-job start dates within {{ period.label }}{% if undated %}; {{ undated }} employed respondent{{ undated|pluralize }} ha{{ undated|pluralize:"s,ve" }} missing or invalid dates{% endif %}. This does not mean no respondents are employed.</span>
+      </div>
+      {% endif %}
       <p class="employability-chart-note">{{ total_hired }} dated current-job start{{ total_hired|pluralize }} in {{ period.label }} (through {{ period_cutoff|date:"M j, Y" }}). Missing start dates are excluded. Annual reports show a quarterly breakdown.</p>
     </section>
     <section class="employability-panel" aria-labelledby="campus-chart-heading">
@@ -63,7 +83,8 @@
         <a class="btn employability-action employability-action--primary" href="?{{ request.GET.urlencode }}{% if request.GET %}&amp;{% endif %}format=pdf"><i class="fas fa-file-pdf me-1" aria-hidden="true"></i> PDF</a>
       </div>
     </div>
-    <div class="table-responsive"><table class="employability-table">
+    <p class="employability-table-guidance"><i class="fas fa-arrows-alt-h" aria-hidden="true"></i> Scroll horizontally to view all columns. Job-start counts require actual dates; reported employment is a separate tracer-response measure.</p>
+    <div class="table-responsive" tabindex="0" role="region" aria-label="Scrollable graduate employability report table"><table class="employability-table">
       <caption>Only {{ period.label }} is reported{% if period_kind == "annual" %}, divided into its four quarters{% endif %}. Current-job start counts require explicit dates; employment-status counts use the latest submitted answers and can exceed dated starts. All percentages use tracer respondents, not the complete graduate registry.</caption>
       <thead><tr><th scope="col">Main campus / Colleges and External Campuses</th><th scope="col">Tracer respondents</th>{% for label in period_labels %}<th scope="col">Current-job starts · {{ label }}</th><th scope="col">% of respondents · {{ label }}</th>{% endfor %}<th scope="col">Reported employed (as of)</th><th scope="col">Missing start date</th><th scope="col">Respondent employment rate (as of)</th><th scope="col">Respondent share</th></tr></thead>
       <tbody>
@@ -74,7 +95,7 @@
       </tr>{% empty %}<tr><td colspan="{{ table_column_count }}">No alumni tracer responses in this cohort. Try another graduating year or campus.</td></tr>{% endfor %}
       </tbody><tfoot><tr><th scope="row">University total</th><td>{{ graduates }}</td>
         {% for cell in period_total_cells %}<td>{{ cell.count }}</td><td>{{ cell.rate|floatformat:2 }}%</td>{% endfor %}
-        <td>{{ employed }}</td><td>{{ undated }}</td><td>{{ rate_display }}</td><td>{{ rate_display }}</td></tr></tfoot>
+        <td>{{ employed }}</td><td>{{ undated }}</td><td>{{ rate_display }}</td><td>{{ respondent_share_display }}</td></tr></tfoot>
     </table></div>
     <p class="employability-note"><strong>Data source and limitations:</strong> {{ methodology }}</p>
   </section>
