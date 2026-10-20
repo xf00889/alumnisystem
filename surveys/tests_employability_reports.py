@@ -229,3 +229,54 @@ class EmployabilityReportTests(TestCase):
             **self.params(), 'period': 'monthly', 'year': 2026, 'month': 10
         })
         self.assertEqual(future_period.status_code, 400)
+
+
+    def test_employability_filter_excludes_one_day_but_other_reports_keep_it(self):
+        from django.template.loader import render_to_string
+
+        self.client.force_login(self.admin)
+        report = self.get_over_https(reverse('surveys:employability_report'), self.params())
+        self.assertEqual(report.status_code, 200)
+        html = report.content.decode('utf-8')
+        self.assertNotIn('value="day"', html)
+        self.assertNotIn('data-period-field="day"', html)
+        for period in ('monthly', 'quarterly', 'semi_annual', 'annual', 'custom'):
+            self.assertIn(f'value="{period}"', html)
+
+        shared_html = render_to_string('admin/components/report_period_fields.html', {
+            'period_kind': 'day',
+        })
+        self.assertIn('value="day"', shared_html)
+        self.assertIn('data-period-field="day"', shared_html)
+
+    def test_one_day_requests_are_rejected_even_when_entered_directly(self):
+        self.client.force_login(self.admin)
+        url = reverse('surveys:employability_report')
+        for mode in ('day', 'one_day', 'single_day'):
+            with self.subTest(period=mode):
+                params = {**self.params(), 'period': mode, 'day': '2026-02-02'}
+                report = self.get_over_https(url, params)
+                self.assertEqual(report.status_code, 400)
+                self.assertIn(b'One-day employability reports are not available', report.content)
+                self.assertEqual(report.context['period_kind'], 'annual')
+                export = self.get_over_https(url, {**params, 'format': 'csv'})
+                self.assertEqual(export.status_code, 400)
+                self.assertNotIn('Content-Disposition', export.headers)
+
+    def test_single_day_custom_range_rejected_but_multi_day_custom_allowed(self):
+        self.client.force_login(self.admin)
+        url = reverse('surveys:employability_report')
+        params = {
+            **self.params(), 'period': 'custom',
+            'start_date': '2026-02-02', 'end_date': '2026-02-02',
+        }
+        one_day = self.get_over_https(url, params)
+        self.assertEqual(one_day.status_code, 400)
+        self.assertIn(b'One-day employability reports are not available', one_day.content)
+
+        valid_range = self.get_over_https(url, {
+            **params, 'end_date': '2026-02-03',
+        })
+        self.assertEqual(valid_range.status_code, 200)
+        self.assertEqual(valid_range.context['period_kind'], 'custom')
+        self.assertEqual(len(valid_range.context['period_labels']), 1)

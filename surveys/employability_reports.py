@@ -206,6 +206,14 @@ def _report_data(params):
         raise ValueError('Report year cannot be later than the as-of year.')
     period_params = params if params.get('period') else {'period': 'annual', 'year': report_year}
     period = parse_report_period(period_params, today=today)
+    # One-day reporting is intentionally unavailable for employability analytics.
+    # The shared parser still supports it for unrelated administrative exports.
+    # A same-day custom range is normalized to kind='day' by the parser.
+    if period.kind == 'day':
+        raise ValueError(
+            'One-day employability reports are not available. Choose Monthly, '
+            'Quarterly, Semi-annual, Annual, or a multi-day custom range.'
+        )
     if not period.start:
         period = parse_report_period({'period':'annual', 'year':report_year}, today=today)
     if period.start.year != report_year or period.end.year != report_year:
@@ -440,7 +448,8 @@ def employability_report(request):
             'report_year': request.GET.get('report_year', ''),
             'as_of': request.GET.get('as_of', ''),
             'campus_filter': request.GET.get('campus', ''),
-            'period_kind': request.GET.get('period') or 'annual',
+            'period_kind': (request.GET.get('period') if request.GET.get('period') in
+                            ('monthly', 'quarterly', 'semi_annual', 'annual', 'custom') else 'annual'),
         }, status=400)
     format_name = (request.GET.get('format') or '').lower()
     if format_name:
