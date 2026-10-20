@@ -161,3 +161,71 @@ class EmployabilityReportTests(TestCase):
         response = self.get_over_https(reverse('account_reset_password'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'email', status_code=200)
+
+    def test_monthly_report_displays_only_requested_month(self):
+        self.client.force_login(self.admin)
+        params = {**self.params(), 'period': 'monthly', 'year': 2026, 'month': 2}
+        response = self.get_over_https(reverse('surveys:employability_report'), params)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['period_labels'], ['February 2026'])
+        self.assertEqual(response.context['period_totals'], [1])
+        self.assertEqual(response.context['table_column_count'], 8)
+        self.assertContains(response, 'Current-job starts · February 2026')
+        self.assertNotContains(response, 'Current-job starts · Q2 2026')
+        self.assertContains(response, 'not a historical employment measure')
+        csv_response = self.get_over_https(reverse('surveys:employability_report'), {**params, 'format': 'csv'})
+        self.assertEqual(csv_response.status_code, 200)
+        self.assertIn(b'February 2026', csv_response.content)
+        self.assertNotIn(b'Q2 2026', csv_response.content)
+        self.assertIn(b'monthly_2026-02', csv_response['Content-Disposition'])
+
+    def test_quarterly_and_half_year_report_single_requested_window(self):
+        self.client.force_login(self.admin)
+        checks = (
+            ('quarterly', {'quarter': 1}, 'Q1 2026', [1]),
+            ('quarterly', {'quarter': 3}, 'Q3 2026', [1]),
+            ('semi_annual', {'half': 1}, 'H1 2026', [1]),
+            ('semi_annual', {'half': 2}, 'H2 2026', [1]),
+        )
+        for kind, controls, label, expected in checks:
+            with self.subTest(kind=kind, label=label):
+                response = self.get_over_https(reverse('surveys:employability_report'), {
+                    **self.params(), 'period': kind, 'year': 2026, **controls,
+                })
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.context['period_labels'], [label])
+                self.assertEqual(response.context['period_totals'], expected)
+                self.assertEqual(response.context['table_column_count'], 8)
+
+    def test_annual_remains_four_quarters_and_excel_columns_match(self):
+        from openpyxl import load_workbook
+        self.client.force_login(self.admin)
+        params = {**self.params(), 'period': 'annual', 'year': 2026}
+        response = self.get_over_https(reverse('surveys:employability_report'), params)
+        self.assertEqual(response.context['period_labels'],
+                         ['Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026'])
+        self.assertEqual(response.context['period_totals'], [1, 0, 1, 0])
+        self.assertEqual(response.context['table_column_count'], 14)
+        csv_response = self.get_over_https(reverse('surveys:employability_report'), {**params, 'format': 'csv'})
+        for quarter in ('Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026'):
+            self.assertIn(quarter.encode(), csv_response.content)
+        workbook_response = self.get_over_https(reverse('surveys:employability_report'), {
+            **self.params(), 'period': 'monthly', 'year': 2026, 'month': 2, 'format': 'excel'
+        })
+        sheet = load_workbook(BytesIO(workbook_response.content)).active
+        self.assertEqual(sheet.max_column, 8)
+        self.assertIn('February 2026', sheet.cell(5, 3).value)
+        self.assertEqual(sheet.auto_filter.ref.split(':')[-1][0], 'H')
+
+    def test_empty_cohort_rate_is_na_and_period_cannot_be_after_asof(self):
+        self.client.force_login(self.admin)
+        empty = self.get_over_https(reverse('surveys:employability_report'), {
+            **self.params(), 'cohort_year': 2025, 'period': 'monthly', 'year': 2026, 'month': 2
+        })
+        self.assertEqual(empty.status_code, 200)
+        self.assertEqual(empty.context['rate_display'], 'N/A')
+        self.assertContains(empty, 'N/A')
+        future_period = self.get_over_https(reverse('surveys:employability_report'), {
+            **self.params(), 'period': 'monthly', 'year': 2026, 'month': 10
+        })
+        self.assertEqual(future_period.status_code, 400)

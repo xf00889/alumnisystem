@@ -10,7 +10,7 @@
   <header class="admin-page-header employability-header">
     <p class="admin-page-header__eyebrow">ADMINISTRATION / TRACER STUDY / REPORTS</p>
     <h1 class="admin-page-header__title" id="employability-title">Graduate Employability Report</h1>
-    <p class="admin-page-header__subtitle">Employability statistics from submitted alumni tracer-study questionnaires, with dated quarterly starts and export-ready summaries.</p>
+    <p class="admin-page-header__subtitle">Employability statistics from submitted alumni tracer-study questionnaires, with period-specific current-job starts, respondent employment rates, and consistent exports.</p>
   </header>
   <nav class="reporting-workflow" aria-label="Tracer study reporting">
     <a class="reporting-workflow__item" href="{% url 'surveys:tracer_study_reports' %}"><span class="reporting-workflow__step">T</span><span><strong>Tracer cycles</strong><small>Survey results</small></span></a>
@@ -18,10 +18,10 @@
     <a class="reporting-workflow__item" href="{% url 'surveys:report_list' %}"><span class="reporting-workflow__step">R</span><span><strong>Saved reports</strong><small>Other analytics</small></span></a>
   </nav>
   <section class="employability-panel" aria-label="Reporting controls">
-    <form method="get" class="employability-filters" id="employabilityFilters">
+    <form method="get" class="employability-filters" id="employabilityFilters" data-period-month="{{ period.start|date:'n' }}" data-period-start="{{ period.start|date:'Y-m-d' }}" data-period-end="{{ period.end|date:'Y-m-d' }}">
       <label>Graduating class <input required type="number" min="1900" max="2200" name="cohort_year" value="{{ cohort_year }}"></label>
       <label>Hiring report year <input required type="number" min="1900" max="2200" name="report_year" value="{{ report_year }}"></label>
-      <label>As-of date <input required type="date" name="as_of" value="{{ as_of|date:'Y-m-d' }}"></label>
+      <label>Tracer response as-of date <input required type="date" name="as_of" value="{{ as_of|date:'Y-m-d' }}"></label>
       <label>Campus
         <select name="campus">
           <option value="">All campuses</option>
@@ -39,24 +39,24 @@
   <section class="employability-summary" aria-label="Key statistics">
     <div class="employability-stat"><span>Tracer respondents · Class {{ cohort_year }}</span><strong>{{ graduates }}</strong><small>Completed alumni tracer questionnaires</small></div>
     <div class="employability-stat"><span>Reported employed · Class {{ cohort_year }}</span><strong>{{ employed }}</strong><small>Self-reported currently employed</small></div>
-    <div class="employability-stat"><span>Respondent employment rate</span><strong>{{ rate|floatformat:2 }}%</strong><small>Employed respondents / all respondents</small></div>
+    <div class="employability-stat"><span>Respondent employment rate · as of {{ as_of|date:'M j, Y' }}</span><strong>{{ rate_display }}</strong><small>Latest reported status by snapshot date; not a historical rate for {{ period.label }}</small></div>
     <div class="employability-stat"><span>Employed · missing start date</span><strong>{{ undated }}</strong><small>Not assigned to any hiring quarter</small></div>
   </section>
   <div class="employability-charts">
     <section class="employability-panel" aria-labelledby="quarter-chart-heading">
-      <h2 id="quarter-chart-heading">Quarterly current-job starts</h2>
-      <div class="employability-canvas"><canvas id="employabilityQuarterChart" role="img" aria-label="Bar chart of dated current-job starts by quarter"></canvas></div>
-      <p class="employability-chart-note">{{ total_hired }} dated job start{{ total_hired|pluralize }} in the selected period. Undated employment is excluded from this chart.</p>
+      <h2 id="quarter-chart-heading">Current-job starts · {{ period.label }}</h2>
+      <div class="employability-canvas"><canvas id="employabilityQuarterChart" role="img" aria-label="Dated current-job starts for the selected reporting period"></canvas></div>
+      <p class="employability-chart-note">{{ total_hired }} dated current-job start{{ total_hired|pluralize }} in {{ period.label }} (through {{ period_cutoff|date:"M j, Y" }}). Missing start dates are excluded. Annual reports show a quarterly breakdown.</p>
     </section>
     <section class="employability-panel" aria-labelledby="campus-chart-heading">
       <h2 id="campus-chart-heading">Employed respondents by campus / college</h2>
       <div class="employability-canvas"><canvas id="employabilityGroupChart" role="img" aria-label="Horizontal bar chart of employed survey respondents by campus or college"></canvas></div>
-      <p class="employability-chart-note">{{ employed }} graduate{{ employed|pluralize }} reported being employed in their tracer response.</p>
+      <p class="employability-chart-note">{{ employed }} respondent{{ employed|pluralize }} reported employment as of {{ as_of|date:"M j, Y" }}. This is not a historical employment measure for {{ period.label }}.</p>
     </section>
   </div>
   <section class="employability-panel" aria-labelledby="hire-table-heading">
     <div class="employability-table-head">
-      <div><h2 id="hire-table-heading">Tracer respondents · Class {{ cohort_year }} — As of {{ as_of|date:'F j, Y' }}</h2><p>Reporting window: {{ period.label }} (as of {{ as_of|date:"M j, Y" }}). Rates use submitted tracer-study responses for the selected class.</p></div>
+      <div><h2 id="hire-table-heading">Current-job starts · {{ period.label }} · Class {{ cohort_year }}</h2><p>Selected hiring window: {{ period.start|date:"M j, Y" }}–{{ period.end|date:"M j, Y" }} (data through {{ period_cutoff|date:"M j, Y" }}). Employment status comes from responses received by {{ as_of|date:"M j, Y" }}.</p></div>
       <div class="employability-export-actions" aria-label="Download report">
         <a class="btn employability-action employability-action--secondary-outline" href="?{{ request.GET.urlencode }}{% if request.GET %}&amp;{% endif %}format=csv"><i class="fas fa-file-csv me-1" aria-hidden="true"></i> CSV</a>
         <a class="btn employability-action employability-action--secondary" href="?{{ request.GET.urlencode }}{% if request.GET %}&amp;{% endif %}format=excel"><i class="fas fa-file-excel me-1" aria-hidden="true"></i> Excel</a>
@@ -64,21 +64,22 @@
       </div>
     </div>
     <div class="table-responsive"><table class="employability-table">
-      <caption>Quarterly cells count explicit current-job start dates in {{ period.label }}. Employed totals come from survey answers and may exceed the sum of quarterly starts.</caption>
-      <thead><tr><th scope="col">Main campus / Colleges and External Campuses</th><th scope="col">Tracer responses</th>{% for n in quarter_totals %}<th scope="col">Hired Q{{ forloop.counter }}</th><th scope="col">% Q{{ forloop.counter }}</th>{% endfor %}<th scope="col">Reported employed</th><th scope="col">No start date</th><th scope="col">Employment rate</th><th scope="col">Respondent share</th></tr></thead>
+      <caption>Only {{ period.label }} is reported{% if period_kind == "annual" %}, divided into its four quarters{% endif %}. Current-job start counts require explicit dates; employment-status counts use the latest submitted answers and can exceed dated starts. All percentages use tracer respondents, not the complete graduate registry.</caption>
+      <thead><tr><th scope="col">Main campus / Colleges and External Campuses</th><th scope="col">Tracer respondents</th>{% for label in period_labels %}<th scope="col">Current-job starts · {{ label }}</th><th scope="col">% of respondents · {{ label }}</th>{% endfor %}<th scope="col">Reported employed (as of)</th><th scope="col">Missing start date</th><th scope="col">Respondent employment rate (as of)</th><th scope="col">Respondent share</th></tr></thead>
       <tbody>
       {% for item in display_rows %}<tr{% if item.subtotal %} class="employability-subtotal"{% endif %}>
         <th scope="row">{{ item.name }}</th><td>{{ item.graduates }}</td>
-        {% for count in item.hires %}<td>{{ count }}</td><td>{% for rate in item.rates %}{% if forloop.counter == forloop.parentloop.counter %}{{ rate|floatformat:2 }}%{% endif %}{% endfor %}</td>{% endfor %}
+        {% for cell in item.period_cells %}<td>{{ cell.count }}</td><td>{{ cell.rate|floatformat:2 }}%</td>{% endfor %}
         <td>{{ item.employed }}</td><td>{{ item.undated }}</td><td>{{ item.rate|floatformat:2 }}%</td><td>{{ item.university_share|floatformat:2 }}%</td>
-      </tr>{% empty %}<tr><td colspan="14">No alumni tracer responses in this cohort. Try another graduating year or campus.</td></tr>{% endfor %}
+      </tr>{% empty %}<tr><td colspan="{{ table_column_count }}">No alumni tracer responses in this cohort. Try another graduating year or campus.</td></tr>{% endfor %}
       </tbody><tfoot><tr><th scope="row">University total</th><td>{{ graduates }}</td>
-        {% for count in quarter_totals %}<td>{{ count }}</td><td>{% for rate in total_rates %}{% if forloop.counter == forloop.parentloop.counter %}{{ rate|floatformat:2 }}%{% endif %}{% endfor %}</td>{% endfor %}
-        <td>{{ employed }}</td><td>{{ undated }}</td><td>{{ rate|floatformat:2 }}%</td><td>{{ rate|floatformat:2 }}%</td></tr></tfoot>
+        {% for cell in period_total_cells %}<td>{{ cell.count }}</td><td>{{ cell.rate|floatformat:2 }}%</td>{% endfor %}
+        <td>{{ employed }}</td><td>{{ undated }}</td><td>{{ rate_display }}</td><td>{{ rate_display }}</td></tr></tfoot>
     </table></div>
     <p class="employability-note"><strong>Data source and limitations:</strong> {{ methodology }}</p>
   </section>
-  {{ quarter_totals|json_script:'employability-quarters' }}
+  {{ period_totals|json_script:'employability-period-totals' }}
+  {{ period_labels|json_script:'employability-period-labels' }}
   {{ rows|json_script:'employability-groups' }}
   {% endif %}
 </main>
@@ -88,6 +89,22 @@
 <script>
 document.addEventListener('DOMContentLoaded',()=>{
   const form = document.getElementById('employabilityFilters');
+  if (form) {
+    const query = new URLSearchParams(window.location.search);
+    const month = Number(form.dataset.periodMonth) || 1;
+    const fallbacks = {
+      month: String(month),
+      quarter: String(Math.floor((month - 1) / 3) + 1),
+      half: month <= 6 ? '1' : '2',
+      day: form.dataset.periodStart,
+      start_date: form.dataset.periodStart,
+      end_date: form.dataset.periodEnd
+    };
+    for (const [name, fallback] of Object.entries(fallbacks)) {
+      const field = form.querySelector(`[name="${name}"]`);
+      if (field && (query.has(name) || fallback)) field.value = query.get(name) || fallback;
+    }
+  }
   form?.addEventListener('submit',()=>{
     const mirror = document.getElementById('employabilityPeriodYear');
     if(mirror) mirror.value = form.querySelector('[name="report_year"]').value;
