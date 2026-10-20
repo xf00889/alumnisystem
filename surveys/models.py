@@ -153,6 +153,31 @@ class SurveyResponse(models.Model):
         unique_together = ['survey', 'alumni']  # Each alumni can only respond once
 
 
+class TracerJobStartUpdate(models.Model):
+    """Append-only self-service corrections to a submitted alumni tracer job date.
+
+    The original questionnaire answers and submission timestamp are immutable.
+    Corrections only enter employment reports from their recording date onward.
+    """
+
+    response = models.ForeignKey(
+        SurveyResponse, on_delete=models.CASCADE, related_name="job_start_updates"
+    )
+    start_date = models.DateField(null=True, blank=True)
+    date_unknown = models.BooleanField(default=False)
+    recorded_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ["-recorded_at", "-pk"]
+
+    def clean(self):
+        super().clean()
+        if bool(self.start_date) == bool(self.date_unknown):
+            raise ValidationError(
+                "Select either a current-job start date or 'Cannot recall', not both."
+            )
+
+
 class ResponseAnswer(models.Model):
     response = models.ForeignKey(SurveyResponse, on_delete=models.CASCADE, related_name='answers')
     question = models.ForeignKey(SurveyQuestion, on_delete=models.CASCADE)

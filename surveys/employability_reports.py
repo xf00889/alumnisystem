@@ -18,6 +18,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.http import require_GET
 
 from alumni_directory.models import Alumni
@@ -47,7 +48,7 @@ TRACER_CAMPUS_CODES = {
 }
 
 
-def _answer_map(response):
+def _answer_map(response, as_of=None):
     """Extract canonical questionnaire keys without using free-text guessing."""
     result = {}
     for answer in response.answers.all():
@@ -63,6 +64,22 @@ def _answer_map(response):
             result[key] = answer.selected_option.option_text.strip()
         elif answer.text_answer:
             result[key] = answer.text_answer.strip()
+    # Append-only corrections are applied only when they were recorded on or
+    # before the report's as-of date. Older snapshots remain reproducible.
+    # Prefetched updates avoid per-response SQL queries on large reports.
+    updates = response.job_start_updates.all()
+    for correction in updates:
+        correction_day = (
+            timezone.localtime(correction.recorded_at).date()
+            if timezone.is_aware(correction.recorded_at)
+            else correction.recorded_at.date()
+        )
+        if as_of is not None and correction_day > as_of:
+            continue
+        result['p3_current_job_start'] = (
+            'unknown' if correction.date_unknown else correction.start_date.isoformat()
+        )
+        break
     return result
 
 
@@ -231,7 +248,7 @@ def _report_data(params):
     cutoff = datetime.combine(as_of + timedelta(days=1), time.min)
     response_query = (SurveyResponse.objects.filter(
         survey__title=ALUMNI_TITLE, submitted_at__lt=cutoff,
-    ).select_related('alumni').prefetch_related('answers__question', 'answers__selected_option')
+    ).select_related('alumni').prefetch_related('answers__question', 'answers__selected_option', 'job_start_updates')
      .order_by('alumni_id', '-submitted_at', '-pk'))
     seen, cohort, hires, employed_ids, undated_ids = set(), [], [], set(), set()
     for response in response_query:
@@ -239,7 +256,7 @@ def _report_data(params):
             continue
         seen.add(response.alumni_id)
         alumni = response.alumni
-        answers = _answer_map(response)
+        answers = _answer_map(response, as_of=as_of)
         year = alumni.graduation_year
         try:
             year = int(answers.get('p2_year') or year)

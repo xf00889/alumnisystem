@@ -15,6 +15,7 @@ URLs:
 from datetime import date, datetime as _datetime, timedelta
 from io import BytesIO
 from pathlib import Path
+from zoneinfo import ZoneInfo
 import asyncio
 import base64
 import csv
@@ -61,6 +62,7 @@ from .models import (
     Survey,
     SurveyQuestion,
     SurveyResponse,
+    TracerJobStartUpdate,
 )
 from .tracer_metadata import (
     ALUMNI_TITLE,
@@ -1244,6 +1246,62 @@ def _resolve_option_id(question, question_key, value_key):
     return None
 
 
+def _tracer_question(survey, key):
+    """Find an actual question by its canonical metadata key."""
+    for question in survey.questions.all():
+        if _answer_key(question) == key:
+            return question
+    return None
+
+
+def _submitted_employed(response):
+    """Check the original recorded choice, not editable profile information."""
+    for answer in response.answers.select_related("question", "selected_option"):
+        if _answer_key(answer.question) == "p3_employed":
+            return bool(answer.selected_option and
+                        answer.selected_option.option_text.strip().casefold() == "yes")
+    return False
+
+
+def _tracer_local_today():
+    """Today's date in campus timezone, including when USE_TZ=False."""
+    return _datetime.now(ZoneInfo(settings.TIME_ZONE)).date()
+
+
+def _job_start_values(raw_date, unknown, today=None):
+    """Return (date, unknown) or a validation message; never infer a date."""
+    today = today or _tracer_local_today()
+    unknown = unknown == "on"
+    if bool(raw_date) == unknown:
+        raise ValueError("Enter the current-job start date or select Cannot recall (not both).")
+    if unknown:
+        return None, True
+    try:
+        start = date.fromisoformat(raw_date)
+    except (TypeError, ValueError):
+        raise ValueError("Enter a valid current-job start date.") from None
+    if start > today or start.year < 1900:
+        raise ValueError("The start date must be between 1900 and today.")
+    return start, False
+
+
+def _validate_initial_job_start(request, survey):
+    """Validate employment-date answers before creating a SurveyResponse."""
+    question = _tracer_question(survey, "p3_current_job_start")
+    employed = _tracer_question(survey, "p3_employed")
+    if not question or not employed:
+        return
+    chosen = employed.options.filter(
+        pk=request.POST.get(f"question_{employed.pk}") or None
+    ).first()
+    if not chosen or chosen.option_text.strip().casefold() != "yes":
+        return
+    _job_start_values(
+        request.POST.get(f"question_{question.pk}", "").strip(),
+        request.POST.get("job_start_unknown", ""),
+    )
+
+
 def _already_submitted_alumni(survey, alumni):
     return SurveyResponse.objects.filter(survey=survey, alumni=alumni).exists()
 
@@ -1270,6 +1328,13 @@ def _save_alumni_response(request, survey, alumni):
             "text", "email", "number", "phone", "url", "date", "time",
         ):
             value = request.POST.get(field_name, "").strip()
+            if _answer_key(question) == "p3_current_job_start":
+                employed = _tracer_question(survey, "p3_employed")
+                choice = employed.options.filter(pk=request.POST.get(f"question_{employed.pk}") or None).first() if employed else None
+                if not choice or choice.option_text.strip().casefold() != "yes":
+                    value = ""
+                elif request.POST.get("job_start_unknown") == "on":
+                    value = "unknown"  # Explicit selection, distinct from a legacy blank.
             if value:
                 answer_data["text_answer"] = value
 
@@ -1346,6 +1411,13 @@ def _save_employer_response(request, survey, employer):
             "text", "email", "number", "phone", "url", "date", "time",
         ):
             value = request.POST.get(field_name, "").strip()
+            if _answer_key(question) == "p3_current_job_start":
+                employed = _tracer_question(survey, "p3_employed")
+                choice = employed.options.filter(pk=request.POST.get(f"question_{employed.pk}") or None).first() if employed else None
+                if not choice or choice.option_text.strip().casefold() != "yes":
+                    value = ""
+                elif request.POST.get("job_start_unknown") == "on":
+                    value = "unknown"  # Explicit selection, distinct from a legacy blank.
             if value:
                 answer_data["text_answer"] = value
 
@@ -1378,6 +1450,94 @@ def _save_employer_response(request, survey, employer):
     return response, answer_count
 
 
+def _split_alumni_tracer_questions(questions):
+    form_questions, extent_questions = [], []
+    for question in questions:
+        key = _answer_key(question)
+        if key in PART_IV_EXTENT_KEYS:
+            extent_questions.append({
+                "question": question,
+                "label": PART_IV_EXTENT_LABELS.get(key, question.question_text),
+            })
+        else:
+            form_questions.append(question)
+    return form_questions, extent_questions
+
+
+def _posted_tracer_answers(request, questions):
+    """Keep entered basic values after a job-start validation error."""
+    values = {}
+    for question in questions:
+        field = f"question_{question.pk}"
+        if question.question_type == "multiple_choice":
+            try:
+                values[question.pk] = int(request.POST.get(field, ""))
+            except (ValueError, TypeError):
+                pass
+        elif question.question_type in ("text", "date", "number", "email", "phone", "url"):
+            values[question.pk] = request.POST.get(field, "")
+    return values
+
+
+@require_http_methods(["GET", "POST"])
+@login_required
+def tracer_study_employment_date_update(request, response_id):
+    """Allow only a submitted, employed alumnus to correct their own job date.
+
+    Updates are append-only. We never alter the original questionnaire or its
+    submitted_at timestamp, so earlier reporting snapshots are reproducible.
+    """
+    response = get_object_or_404(
+        SurveyResponse.objects.select_related("alumni__user", "survey"),
+        pk=response_id, alumni__user=request.user, survey__title=ALUMNI_TITLE,
+    )
+    if not _submitted_employed(response):
+        raise Http404
+
+    latest = response.job_start_updates.first()
+    original = ""
+    for answer in response.answers.select_related("question"):
+        if _answer_key(answer.question) == "p3_current_job_start":
+            original = answer.text_answer or ""
+            break
+    today = _tracer_local_today()
+    chosen = latest.start_date.isoformat() if latest and latest.start_date else (
+        original if not latest and _parse_date_str(original) else ""
+    )
+    unknown = latest.date_unknown if latest else original == "unknown"
+    error = ""
+    if request.method == "POST":
+        raw = request.POST.get("job_start_date", "").strip()
+        checked = request.POST.get("unknown_date", "")
+        try:
+            start, unknown = _job_start_values(raw, checked, today=today)
+        except ValueError as exc:
+            error = str(exc)
+            chosen = raw
+            unknown = checked == "on"
+        else:
+            with transaction.atomic():
+                # Lock the owner response to prevent concurrent duplicate updates.
+                SurveyResponse.objects.select_for_update().get(pk=response.pk)
+                current = response.job_start_updates.first()
+                original_date = _parse_date_str(original)
+                current_date = current.start_date if current else original_date
+                current_unknown = current.date_unknown if current else original == "unknown"
+                if current_date != start or current_unknown != unknown:
+                    TracerJobStartUpdate.objects.create(
+                        response=response, start_date=start, date_unknown=unknown,
+                    )
+            messages.success(request, "Your employment start-date information has been updated.")
+            return redirect("surveys:tracer_study_employment_date_update", response_id=response.pk)
+
+    return render(request, "tracer_study/employment_date_update.html", {
+        "survey": response.survey, "response": response,
+        "job_start_date": chosen, "date_unknown": unknown,
+        "error": error, "today": today,
+        "last_updated": latest.recorded_at if latest else None,
+    }, status=400 if error else 200)
+
+
 @require_http_methods(["GET", "POST"])
 @login_required
 def tracer_study_alumni(request):
@@ -1406,6 +1566,17 @@ def tracer_study_alumni(request):
 
     survey = _get_active_survey(ALUMNI_TITLE, alumni)
     if survey is None:
+        # Existing respondents can complete missing employment details after a
+        # survey cycle closes; new submissions remain closed.
+        submitted = (SurveyResponse.objects.filter(
+            alumni=alumni, survey__title=ALUMNI_TITLE
+        ).select_related("survey").order_by("-submitted_at", "-pk").first())
+        if submitted:
+            return render(request, "tracer_study/already_submitted.html", {
+                "survey": submitted.survey, "audience": "alumni",
+                "submitted_response": submitted,
+                "can_update_job_start": _submitted_employed(submitted),
+            })
         messages.info(
             request,
             "The Tracer Study is not currently available for your alumni profile.",
@@ -1413,13 +1584,26 @@ def tracer_study_alumni(request):
         return redirect("core:home")
 
     if _already_submitted_alumni(survey, alumni):
+        submitted = SurveyResponse.objects.get(survey=survey, alumni=alumni)
         return render(
             request,
             "tracer_study/already_submitted.html",
-            {"survey": survey, "audience": "alumni"},
+            {"survey": survey, "audience": "alumni", "submitted_response": submitted,
+             "can_update_job_start": _submitted_employed(submitted)},
         )
 
     if request.method == "POST":
+        try:
+            _validate_initial_job_start(request, survey)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            questions = list(survey.questions.all().prefetch_related("options"))
+            form_questions, extent_questions = _split_alumni_tracer_questions(questions)
+            return render(request, "tracer_study/alumni_form.html", {
+                "survey": survey, "questions": form_questions,
+                "extent_questions": extent_questions, "question_count": len(questions),
+                "alumni": alumni, "prefill_answers": _posted_tracer_answers(request, questions),
+            }, status=400)
         try:
             with transaction.atomic():
                 _save_alumni_response(request, survey, alumni)
@@ -1437,21 +1621,7 @@ def tracer_study_alumni(request):
         )
 
     questions = list(survey.questions.all().prefetch_related("options"))
-    form_questions = []
-    extent_questions = []
-    for question in questions:
-        try:
-            meta = json.loads(question.help_text) if question.help_text else {}
-        except (TypeError, ValueError):
-            meta = {}
-        key = meta.get("key") or _question_key_from_text(question.question_text)
-        if key in PART_IV_EXTENT_KEYS:
-            extent_questions.append({
-                "question": question,
-                "label": PART_IV_EXTENT_LABELS.get(key, question.question_text),
-            })
-        else:
-            form_questions.append(question)
+    form_questions, extent_questions = _split_alumni_tracer_questions(questions)
     prefill_answers = _build_prefill_for_alumni(alumni, survey)
     return render(
         request,

@@ -1,0 +1,60 @@
+{% extends tracer_study_page_base|default:"base_landingpage.html" %}
+{% load static %}
+{% block title %}Update Employment Date · NORSU Tracer Study{% endblock %}
+{% block extra_css %}
+{% include 'tracer_study/_design.html' %}
+<link rel="stylesheet" href="{% static 'css/modules/tracer-study.css' %}">
+{% if use_alumni_layout %}
+<link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/tracer-study.css' %}">
+{% endif %}
+{% endblock %}
+{% block content %}
+<div class="tracer-interface">
+  <div class="container">
+    <div class="tracer-header">
+      <h1><i class="fas fa-calendar-alt me-2"></i>Update Employment Start Date</h1>
+      <p>NORSU Graduate Tracer Study · {{ survey.description }}</p>
+    </div>
+    <div class="dashboard-card" style="max-width: 720px; margin: 1.5rem auto;">
+      <div class="card-body">
+        <h2 style="font-size: 1.3rem;">Your current-job start date</h2>
+        <p>Update the date you started your current job, or tell us if you cannot recall it. Your original questionnaire and submission date will remain unchanged.</p>
+        {% if last_updated %}<p class="text-muted small">Last correction recorded: {{ last_updated|date:"M d, Y g:i A" }}</p>{% endif %}
+        {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+        <form method="post" id="tracer-job-date-update-form">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label" for="job-start-date">Date you started your current job</label>
+            <input type="date" class="form-control" id="job-start-date" name="job_start_date" max="{{ today|date:'Y-m-d' }}" value="{{ job_start_date }}">
+          </div>
+          <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" name="unknown_date" value="on" id="unknown-date" {% if date_unknown %}checked{% endif %}>
+            <label for="unknown-date" class="form-check-label">I don't know / cannot recall the date</label>
+          </div>
+          <p class="text-muted small">Enter the actual date only if you know it. An unknown date is counted in employment statistics but not in dated job-start totals. Corrections take effect in reports from the date they are recorded.</p>
+          <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Save employment details</button>
+            <a href="{% url 'surveys:tracer_study_alumni' %}" class="btn btn-outline-secondary">Back to tracer study</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var form = document.getElementById('tracer-job-date-update-form');
+  if (!form) return;
+  var dateInput = document.getElementById('job-start-date');
+  var unknown = document.getElementById('unknown-date');
+  function sync() {
+    if (unknown.checked) dateInput.value = '';
+    dateInput.disabled = unknown.checked;
+    dateInput.required = !unknown.checked;
+  }
+  unknown.addEventListener('change', sync);
+  sync();
+})();
+</script>
+{% endblock %}

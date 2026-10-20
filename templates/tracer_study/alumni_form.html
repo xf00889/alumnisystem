@@ -182,7 +182,14 @@
                         <input type="url" class="form-control" name="question_{{ question.id }}" placeholder="https://..." maxlength="500" autocomplete="off" value="{{ prefill_answers|get_item:question.id }}" {% if question.is_required %}required{% endif %}>
 
                     {% elif question.question_type == 'date' %}
-                        <input type="date" class="form-control" name="question_{{ question.id }}" max="{% now 'Y-m-d' %}" autocomplete="{% if qmeta.key == 'p3_current_job_start' %}off{% else %}bday{% endif %}" value="{{ prefill_answers|get_item:question.id }}" {% if question.is_required %}required{% endif %}>
+                        <input type="date" class="form-control" name="question_{{ question.id }}" max="{% now 'Y-m-d' %}" autocomplete="{% if qmeta.key == 'p3_current_job_start' %}off{% else %}bday{% endif %}" value="{{ prefill_answers|get_item:question.id }}" {% if qmeta.key == 'p3_current_job_start' %}data-job-start-date{% endif %} {% if question.is_required %}required{% endif %}>
+                        {% if qmeta.key == 'p3_current_job_start' %}
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="job-start-unknown" name="job_start_unknown" data-job-start-unknown>
+                            <label class="form-check-label" for="job-start-unknown">I don't know / cannot recall my current-job start date</label>
+                        </div>
+                        <p class="form-text">Choose a date or select the option above. Please do not guess a date. Only recorded dates are used in monthly and quarterly job-start totals.</p>
+                        {% endif %}
 
                     {% elif question.question_type == 'number' %}
                         <input type="number" class="form-control" name="question_{{ question.id }}"
@@ -255,7 +262,7 @@
                     <i class="fas fa-check-circle me-2"></i>Ready to Submit?
                 </h5>
                 <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
-                    Please review your answers before submitting. You won't be able to change them after submission.
+                    Please review your answers before submitting. You can correct your current-job start date later; other questionnaire answers remain final.
                 </p>
                 <div class="d-flex justify-content-center gap-2 flex-wrap">
                     {% if user.is_authenticated %}
@@ -361,8 +368,31 @@
         evaluateAll();
     }
 
+    function setupJobStartDate() {
+        var input = form.querySelector('[data-job-start-date]');
+        var unknown = form.querySelector('[data-job-start-unknown]');
+        if (!input || !unknown) return;
+        function update() {
+            var card = input.closest('[data-conditional-on]');
+            var employed = !card || card.style.display !== 'none';
+            if (!employed) {
+                input.required = false;
+                return;
+            }
+            input.disabled = unknown.checked;
+            input.required = !unknown.checked;
+            if (unknown.checked) input.value = '';
+        }
+        unknown.addEventListener('change', update);
+        document.addEventListener('change', function(e) {
+            if (e.target.matches('input.conditional-option')) update();
+        });
+        update();
+    }
+
     setupOther();
     setupConditional();
+    setupJobStartDate();
 })();
 </script>
 {% endblock %}
