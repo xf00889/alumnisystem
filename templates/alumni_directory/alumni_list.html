@@ -7,7 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script>document.documentElement.classList.add("fe-page--alumni-directory-alumni-list-html");</script>
 <link rel="stylesheet" href="{% static 'css/modules/alumni-directory.css' %}">
-<link rel="stylesheet" href="{% static 'css/modules/alumni-employability.css' %}">
 
 {% if use_alumni_layout %}
 <link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
@@ -112,70 +111,28 @@
         </div>
 
         {% if can_view_alumni_details %}
-        <!-- Staff-only tracer response reporting; graduate verification remains unchanged. -->
-        <section class="directory-employability" aria-labelledby="directoryEmployabilityHeading">
-          <div class="directory-employability__heading">
-            <h2 id="directoryEmployabilityHeading"><i class="fas fa-chart-line" aria-hidden="true"></i> Employability report</h2>
-            <span class="directory-employability__subtitle">Based on graduate tracer responses, not all registered alumni</span>
+        <!-- Reporting lives in the dedicated tracer-study report; this action
+             transfers only filters that the destination supports. -->
+        <section class="directory-report-link" aria-labelledby="directoryReportHeading">
+          <div class="directory-report-link__description">
+            <h2 id="directoryReportHeading"><i class="fas fa-chart-line" aria-hidden="true"></i> Graduate employment analytics</h2>
+            <p>Open the dedicated tracer-study report for respondent employment statistics, period filters, and CSV, Excel or PDF exports. The report uses tracer responses, so totals may differ from the registered-alumni directory.</p>
+            {% if selected_filters.search or selected_filters.province or selected_filters.employment_status %}
+              <p class="directory-report-link__scope">Name search, province, and directory employment-status filters do not apply to tracer reporting.</p>
+            {% endif %}
+            {% if not selected_filters.graduation_year or selected_filters.graduation_year|length != 1 %}
+              <p class="directory-report-link__scope">Choose one graduation year to carry a specific cohort into the report. Otherwise, it opens with the report's default graduating class.</p>
+            {% endif %}
           </div>
-          <form method="get" class="directory-employability__form" id="directoryEmployabilityForm">
-            <input type="hidden" name="employability" value="1">
-            {% if selected_filters.search %}<input type="hidden" name="search" value="{{ selected_filters.search }}">{% endif %}
-            {% for value in selected_filters.graduation_year %}<input type="hidden" name="graduation_year" value="{{ value }}">{% endfor %}
-            {% for value in selected_filters.course %}<input type="hidden" name="course" value="{{ value }}">{% endfor %}
-            {% for value in selected_filters.college %}<input type="hidden" name="college" value="{{ value }}">{% endfor %}
-            {% for value in selected_filters.campus %}<input type="hidden" name="campus" value="{{ value }}">{% endfor %}
-            {% for value in selected_filters.province %}<input type="hidden" name="province" value="{{ value }}">{% endfor %}
-            {% for value in selected_filters.employment_status %}<input type="hidden" name="employment_status" value="{{ value }}">{% endfor %}
-            <label for="directoryEmployabilityPeriod">Period
-              <select id="directoryEmployabilityPeriod" name="period">
-                <option value="monthly" {% if employability_period == 'monthly' %}selected{% endif %}>Monthly</option>
-                <option value="quarterly" {% if employability_period == 'quarterly' %}selected{% endif %}>Quarterly</option>
-                <option value="semi_annual" {% if employability_period == 'semi_annual' %}selected{% endif %}>Semi-annual</option>
-                <option value="annual" {% if employability_period == 'annual' %}selected{% endif %}>Annual</option>
-              </select>
-            </label>
-            <label for="directoryEmployabilityYear">Reporting year
-              <input type="number" id="directoryEmployabilityYear" name="year" value="{{ employability_year }}" min="1900" max="2200" required>
-            </label>
-            <label data-employment-period-field="monthly" for="directoryEmployabilityMonth" hidden>Month
-              <select id="directoryEmployabilityMonth" name="month">
-                {% for number, label in employability_month_choices %}<option value="{{ number }}" {% if employability_month == number|stringformat:'s' %}selected{% endif %}>{{ label }}</option>{% endfor %}
-              </select>
-            </label>
-            <label data-employment-period-field="quarterly" for="directoryEmployabilityQuarter" hidden>Quarter
-              <select id="directoryEmployabilityQuarter" name="quarter">
-                {% for number, label in employability_quarter_choices %}<option value="{{ number }}" {% if employability_quarter == number|stringformat:'s' %}selected{% endif %}>{{ label }}</option>{% endfor %}
-              </select>
-            </label>
-            <label data-employment-period-field="semi_annual" for="directoryEmployabilityHalf" hidden>Half-year
-              <select id="directoryEmployabilityHalf" name="half">
-                {% for number, label in employability_half_choices %}<option value="{{ number }}" {% if employability_half == number|stringformat:'s' %}selected{% endif %}>{{ label }}</option>{% endfor %}
-              </select>
-            </label>
-            <button type="submit" class="directory-employability__apply">Apply period</button>
+          <form method="get" action="{% url 'surveys:employability_report' %}" class="directory-report-link__action">
+            {% if selected_filters.graduation_year|length == 1 %}<input type="hidden" name="cohort_year" value="{{ selected_filters.graduation_year.0 }}">{% endif %}
+            {% if selected_filters.college|length == 1 %}<input type="hidden" name="college" value="{{ selected_filters.college.0 }}">{% endif %}
+            {% if selected_filters.course|length == 1 %}<input type="hidden" name="course" value="{{ selected_filters.course.0 }}">{% endif %}
+            {% if selected_filters.campus|length == 1 %}<input type="hidden" name="campus" value="{{ selected_filters.campus.0 }}">{% endif %}
+            <button type="submit" class="directory-report-link__button">
+              <i class="fas fa-chart-bar" aria-hidden="true"></i> View Employability Report <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </button>
           </form>
-          {% if employability_error %}
-            <p class="directory-employability__alert" role="alert">{{ employability_error }}</p>
-          {% elif employability_report %}
-            <div class="directory-employability__summary" role="group" aria-label="Employability statistics for selected filters">
-              <div class="directory-employability__metric"><span>Employed respondents · as of {{ employability_report.as_of }}</span><strong>{{ employability_report.employment_rate_display }}</strong></div>
-              <div class="directory-employability__metric"><span>Tracer respondents</span><strong>{{ employability_report.graduates }}</strong></div>
-              <div class="directory-employability__metric"><span>Reported employed</span><strong>{{ employability_report.employed }}</strong></div>
-              <div class="directory-employability__metric"><span>Job starts in {{ employability_report.period.label }}</span><strong>{{ employability_report.total_hired }}</strong></div>
-            </div>
-            <p class="directory-employability__note">{{ employability_report.scope_label }} · {{ employability_report.period.label }} · {{ employability_report.eligible_total }} matching alumni records; {{ employability_report.graduates }} with tracer responses. Employment rate = employed respondents ÷ respondents. Job starts require a dated answer. Figures are self-reported.</p>
-            {% if employability_report.graduates %}
-            <div class="directory-employability__download" aria-label="Export employability report">
-              <span class="directory-employability__subtitle">Export report:</span>
-              <a href="{% url 'alumni_directory:employability_export' %}?{{ request.GET.urlencode }}&amp;format=csv">CSV</a>
-              <a href="{% url 'alumni_directory:employability_export' %}?{{ request.GET.urlencode }}&amp;format=excel">Excel</a>
-              <a href="{% url 'alumni_directory:employability_export' %}?{{ request.GET.urlencode }}&amp;format=pdf">PDF</a>
-            </div>
-            {% else %}<p class="directory-employability__note">No tracer-study responses were available for these filters and this snapshot. Employment rate is not available.</p>{% endif %}
-          {% else %}
-            <p class="directory-employability__note">Choose a graduation year in the directory filters, then select a reporting period and apply it.</p>
-          {% endif %}
         </section>
         {% endif %}
 
@@ -385,7 +342,6 @@
 </div>
 
 <!-- JavaScript for filter functionality and connection requests -->
-<script defer src="{% static 'js/modules/alumni-employability.js' %}"></script>
 <script>
 function removeFilter(filterType, value) {
     const url = new URL(window.location);

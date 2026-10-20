@@ -28,6 +28,18 @@
           {% for value, label in campus_choices %}<option value="{{ value }}" {% if campus_filter == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
         </select>
       </label>
+      <label>College
+        <select name="college">
+          <option value="">All colleges</option>
+          {% for code, label in college_choices %}<option value="{{ code }}" {% if college_filter == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Program
+        <select name="course">
+          <option value="">All programs</option>
+          {% for program in course_choices %}<option value="{{ program }}" {% if course_filter == program %}selected{% endif %}>{{ program }}</option>{% endfor %}
+        </select>
+      </label>
       <div class="employability-period-control">
         {% include 'admin/components/report_period_fields.html' with employability_only=True %}
       </div>
@@ -37,6 +49,10 @@
       </div>
     </form>
     {% if error %}<p class="alert alert-danger" role="alert">{{ error }}</p>{% endif %}
+    {% if not error %}
+      {% if campus_scope_note %}<p class="employability-filter-scope">{{ campus_scope_note }}.</p>{% endif %}
+      {% if college_filter or course_filter %}<p class="employability-filter-scope" role="status">Academic scope: {{ college_filter_label }} · {{ course_filter_label }}. Calculations and exports use only eligible tracer responses from this selection.</p>{% endif %}
+    {% endif %}
   </section>
   {% if not error %}
   <section class="employability-summary" aria-label="Key statistics">
@@ -93,7 +109,7 @@
         {% for cell in item.period_cells %}<td>{{ cell.count }}</td><td>{{ cell.rate|floatformat:2 }}%</td>{% endfor %}
         <td>{{ item.employed }}</td><td>{{ item.undated }}</td><td>{{ item.rate|floatformat:2 }}%</td><td>{{ item.university_share|floatformat:2 }}%</td>
       </tr>{% empty %}<tr><td colspan="{{ table_column_count }}">No alumni tracer responses in this cohort. Try another graduating year or campus.</td></tr>{% endfor %}
-      </tbody><tfoot><tr><th scope="row">University total</th><td>{{ graduates }}</td>
+      </tbody><tfoot><tr><th scope="row">{{ scope_total_label }}</th><td>{{ graduates }}</td>
         {% for cell in period_total_cells %}<td>{{ cell.count }}</td><td>{{ cell.rate|floatformat:2 }}%</td>{% endfor %}
         <td>{{ employed }}</td><td>{{ undated }}</td><td>{{ rate_display }}</td><td>{{ respondent_share_display }}</td></tr></tfoot>
     </table></div>

@@ -209,7 +209,7 @@ def _aggregate(cohort, hires, campus_names, college_names, employed_ids=None,
     }
 
 
-def _report_data(params):
+def _report_data(params, *, user=None):
     today = datetime.now(ZoneInfo(settings.TIME_ZONE)).date()
     cohort_year = _int_param(params, 'cohort_year', today.year - 1)
     report_year = _int_param(params, 'report_year', params.get('year') or today.year)
@@ -242,6 +242,13 @@ def _report_data(params):
     valid_campuses = dict(Alumni.CAMPUS_CHOICES)
     if campus_filter and campus_filter not in valid_campuses:
         raise ValueError('Choose a valid campus.')
+    college_filter = (params.get('college') or '').strip()
+    course_filter = (params.get('course') or '').strip()
+    valid_colleges = dict(Alumni.COLLEGE_CHOICES)
+    if college_filter and college_filter not in valid_colleges:
+        raise ValueError('Choose a valid college.')
+    if len(course_filter) > 200 or any(ord(char) < 32 for char in course_filter):
+        raise ValueError('Choose a valid program.')
 
     # Only submitted alumni tracer questionnaires count. The latest response
     # as of the snapshot date wins when an alumnus answered multiple cycles.
@@ -250,12 +257,20 @@ def _report_data(params):
         survey__title=ALUMNI_TITLE, submitted_at__lt=cutoff,
     ).select_related('alumni').prefetch_related('answers__question', 'answers__selected_option', 'job_start_updates')
      .order_by('alumni_id', '-submitted_at', '-pk'))
+    permitted_campuses = None
+    if user is not None and not (user.is_staff or user.is_superuser):
+        from core.models.coordinator_campus import CoordinatorCampus
+        permitted_campuses = set(CoordinatorCampus.objects.filter(user=user).values_list('campus', flat=True))
+    if permitted_campuses is not None:
+        response_query = response_query.filter(alumni__campus__in=permitted_campuses)
     seen, cohort, hires, employed_ids, undated_ids = set(), [], [], set(), set()
     for response in response_query:
         if response.alumni_id in seen:
             continue
         seen.add(response.alumni_id)
         alumni = response.alumni
+        if permitted_campuses is not None and alumni.campus not in permitted_campuses:
+            continue
         answers = _answer_map(response, as_of=as_of)
         year = alumni.graduation_year
         try:
@@ -265,7 +280,17 @@ def _report_data(params):
         if year != cohort_year:
             continue
         campus = TRACER_CAMPUS_CODES.get((answers.get('p2_campus') or '').casefold(), alumni.campus)
+        # Coordinators see the verified campus assigned to their alumni record;
+        # they cannot broaden scope through a differing self-reported campus.
+        if permitted_campuses is not None:
+            campus = alumni.campus
         if campus_filter and campus != campus_filter:
+            continue
+        # Use the linked alumni academic record for college and program.
+        # These were never inferred from the tracer survey answers.
+        if college_filter and alumni.college != college_filter:
+            continue
+        if course_filter and alumni.course != course_filter:
             continue
         cohort.append((response.alumni_id, campus, alumni.college))
         if (answers.get('p3_employed') or '').strip().casefold() != 'yes':
@@ -283,7 +308,15 @@ def _report_data(params):
                         buckets=_period_buckets(period))
     result.update({
         'cohort_year': cohort_year, 'report_year': report_year, 'as_of': as_of,
-        'campus_filter': campus_filter, 'campus_choices': Alumni.CAMPUS_CHOICES,
+        'campus_filter': campus_filter,
+        'campus_choices': [choice for choice in Alumni.CAMPUS_CHOICES if permitted_campuses is None or choice[0] in permitted_campuses],
+        'college_filter': college_filter, 'college_choices': Alumni.COLLEGE_CHOICES,
+        'campus_scope_note': 'Limited to assigned campuses' if permitted_campuses is not None else '',
+        'course_filter': course_filter,
+        'course_choices': Alumni.objects.exclude(course='').values_list('course', flat=True).distinct().order_by('course'),
+        'college_filter_label': valid_colleges.get(college_filter, 'All colleges'),
+        'course_filter_label': course_filter or 'All programs',
+        'scope_total_label': 'Filtered total' if (permitted_campuses is not None or campus_filter or college_filter or course_filter) else 'University total',
         'generation_date': today, 'period': period, 'period_kind': period.kind,
         'period_cutoff': min(as_of, period.end),
         'methodology': (
@@ -305,7 +338,7 @@ def _table_rows(report):
             values += [cell['count'], f"{cell['rate']:.2f}%"]
         yield values + [row['employed'], row['undated'],
                         f"{row['rate']:.2f}%", f"{row['university_share']:.2f}%"]
-    totals = ['UNIVERSITY TOTAL', report['graduates']]
+    totals = [report.get('scope_total_label', 'University total').upper(), report['graduates']]
     for cell in report['period_total_cells']:
         totals += [cell['count'], f"{cell['rate']:.2f}%"]
     yield totals + [report['employed'], report['undated'],
@@ -361,6 +394,7 @@ def _export_report(report, format_name):
         writer = csv.writer(response)
         writer.writerow(['NORSU OFFICE OF ALUMNI AFFAIRS - TRACER-RESPONSE EMPLOYABILITY REPORT'])
         writer.writerow(['Graduating cohort', report['cohort_year'], 'Current job starts in year', report['report_year'], 'Period', period.label, 'As of', report['as_of']])
+        writer.writerow(['College', report.get('college_filter_label', 'All colleges'), 'Program', report.get('course_filter_label', 'All programs')])
         writer.writerow([report['methodology']])
         writer.writerow(columns)
         writer.writerows(rows)
@@ -373,7 +407,7 @@ def _export_report(report, format_name):
         sheet = workbook.active
         sheet.title = 'Employability'
         sheet.append(['NEGROS ORIENTAL STATE UNIVERSITY — OFFICE OF ALUMNI AFFAIRS'])
-        sheet.append([f"GRADUATE EMPLOYABILITY REPORT | Class {report['cohort_year']} | {period.label} | As of {report['as_of']}"])
+        sheet.append([f"GRADUATE EMPLOYABILITY REPORT | Class {report['cohort_year']} | {period.label} | As of {report['as_of']} | {report.get('college_filter_label', 'All colleges')} | {report.get('course_filter_label', 'All programs')}"])
         sheet.append([report['methodology']])
         sheet.append([])
         sheet.append(columns)
@@ -405,6 +439,7 @@ def _export_report(report, format_name):
         from reportlab.lib.pagesizes import A4, landscape
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
+        from xml.sax.saxutils import escape
         output = BytesIO()
         document = SimpleDocTemplate(output, pagesize=landscape(A4), leftMargin=34, rightMargin=34, topMargin=28, bottomMargin=32)
         styles = getSampleStyleSheet()
@@ -418,13 +453,13 @@ def _export_report(report, format_name):
             elements.append(Image(str(header_path), width=670, height=63))
         elements += [Paragraph('NEGROS ORIENTAL STATE UNIVERSITY', heading),
                     Paragraph('Office of Alumni Affairs - Tracer-response Employability Report', styles['Heading3']),
-                    Paragraph(f"Graduating cohort {report['cohort_year']} | Reporting window {period.label} | As of {report['as_of']}", styles['Normal']),
+                    Paragraph(escape(f"Graduating cohort {report['cohort_year']} | Reporting window {period.label} | As of {report['as_of']} | College: {report.get('college_filter_label', 'All colleges')} | Program: {report.get('course_filter_label', 'All programs')}"), styles['Normal']),
                     Spacer(1, 12)]
         white_style = ParagraphStyle('norsu-col-header', parent=styles['Normal'], textColor=colors.white, fontSize=7)
         cell_style = ParagraphStyle('norsu-table-cell', parent=styles['Normal'], fontSize=8, leading=10)
         data = [[Paragraph(str(cell), white_style) for cell in columns]]
         for record in rows:
-            data.append([Paragraph(str(cell), cell_style) for cell in record])
+            data.append([Paragraph(escape(str(cell)), cell_style) for cell in record])
         # Adapt widths to one selected period or four annual quarter columns.
         available = landscape(A4)[0] - 68
         first_width = 146 if len(report['period_labels']) == 4 else 176
@@ -458,7 +493,7 @@ def employability_report(request):
     if not _can_view_tracer_reports(request.user):
         raise Http404
     try:
-        data = _report_data(request.GET)
+        data = _report_data(request.GET, user=request.user)
     except ValueError as error:
         return render(request, 'tracer_study/employability_report.html', {
             'error': str(error), 'campus_choices': Alumni.CAMPUS_CHOICES,
@@ -466,6 +501,10 @@ def employability_report(request):
             'report_year': request.GET.get('report_year', ''),
             'as_of': request.GET.get('as_of', ''),
             'campus_filter': request.GET.get('campus', ''),
+            'college_filter': request.GET.get('college', ''),
+            'college_choices': Alumni.COLLEGE_CHOICES,
+            'course_filter': request.GET.get('course', ''),
+            'course_choices': Alumni.objects.exclude(course='').values_list('course', flat=True).distinct().order_by('course'),
             'period_kind': (request.GET.get('period') if request.GET.get('period') in
                             ('monthly', 'quarterly', 'semi_annual', 'annual', 'custom') else 'annual'),
         }, status=400)
