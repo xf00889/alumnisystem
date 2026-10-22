@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Graduate Registry &amp; Verification | NORSU{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/modules/graduate-registry-page.css' %}">
+{% endblock %}
+{% block content %}
+<div class="container-fluid graduate-registry-page">
+  <header class="dashboard-header admin-page-header mb-4">
+    <p class="admin-page-header__eyebrow">ADMINISTRATION / ALUMNI MANAGEMENT / GRADUATE REGISTRY</p>
+    <h1 class="page-title admin-page-header__title">Graduate Registry &amp; Verification</h1>
+    <p class="mb-0 admin-page-header__subtitle">Review registrar-supplied graduation records before alumni sign-up. Importing a record does not create an account.</p>
+  </header>
+  <nav class="gr-navigation" aria-label="Alumni data sections">
+    <a class="gr-navigation__link" href="{% url 'alumni_directory:alumni_management' %}"><i class="fas fa-users" aria-hidden="true"></i> Registered Alumni</a>
+    <a class="gr-navigation__link active" href="{% url 'alumni_directory:graduate_registry' %}" aria-current="page"><i class="fas fa-clipboard-check" aria-hidden="true"></i> Graduate Registry</a>
+  </nav>
+  <div class="gr-summary" aria-label="Graduate registry totals">
+    <div class="gr-summary__card"><span>Registry entries</span><strong>{{ registry_total }}</strong><small>Registrar records</small></div>
+    <div class="gr-summary__card"><span>Available for claim</span><strong>{{ registry_available }}</strong><small>Not yet linked to an account</small></div>
+    <div class="gr-summary__card"><span>Claimed records</span><strong>{{ registry_claimed }}</strong><small>Linked to a user account</small></div>
+    <div class="gr-summary__card"><span>Matching filters</span><strong>{{ registry_filtered }}</strong><small>On this registry page</small></div>
+  </div>
+
+  <section class="gr-panel" id="registry-list" aria-labelledby="registry-list-title">
+    <div class="gr-panel__head">
+      <div>
+        <h2 id="registry-list-title"><i class="fas fa-list-check" aria-hidden="true"></i> Imported graduate records</h2>
+        <p>Search, review registrar source references and check whether each record has been claimed.</p>
+      </div>
+      <a class="gr-link" href="#registry-compare"><i class="fas fa-file-import" aria-hidden="true"></i> Compare or import a file <i class="fas fa-arrow-down" aria-hidden="true"></i></a>
+    </div>
+    <form action="{% url 'alumni_directory:graduate_registry' %}" method="get" class="gr-filters">
+      <div class="gr-field gr-field--wide"><label for="registrySearch">Search graduates or program</label><input id="registrySearch" class="form-control" name="q" value="{{ q }}" maxlength="100" placeholder="Name, program, or major"></div>
+      <div class="gr-field"><label for="registryYear">Graduation year</label><select id="registryYear" class="form-select" name="year"><option value="">All years</option>{% for year in years %}<option value="{{ year }}" {% if selected_year == year|stringformat:'s' %}selected{% endif %}>{{ year }}</option>{% endfor %}</select></div>
+      <div class="gr-field"><label for="registryCampus">Campus</label><select id="registryCampus" class="form-select" name="campus"><option value="">All campuses</option>{% for code, label in campuses %}<option value="{{ code }}" {% if selected_campus == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div class="gr-field"><label for="registryCollege">College</label><select id="registryCollege" class="form-select" name="college"><option value="">All colleges</option>{% for code, label in colleges %}<option value="{{ code }}" {% if selected_college == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div class="gr-field"><label for="registryClaimed">Registration link</label><select id="registryClaimed" class="form-select" name="status"><option value="">All statuses</option><option value="available" {% if selected_status == 'available' %}selected{% endif %}>Available for claim</option><option value="claimed" {% if selected_status == 'claimed' %}selected{% endif %}>Claimed</option></select></div>
+      <div class="gr-filter-actions"><button class="btn btn-primary" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Filter</button><a class="btn btn-outline-secondary" href="{% url 'alumni_directory:graduate_registry' %}">Clear</a></div>
+    </form>
+    <div class="gr-table-scroller" role="region" aria-label="Imported graduates" tabindex="0">
+      <table class="gr-table">
+        <thead><tr><th>Graduate</th><th>Year</th><th>Campus</th><th>College</th><th>Degree program / major</th><th>Registration link</th><th>Import source</th></tr></thead>
+        <tbody>
+        {% for record in registry_page %}
+          <tr>
+            <td><strong>{{ record.last_name }}, {{ record.first_name }} {{ record.middle_name }} {{ record.suffix }}</strong></td>
+            <td>{{ record.graduation_year }}</td>
+            <td>{{ record.get_campus_display }}</td>
+            <td>{{ record.get_college_display|default:'—' }}</td>
+            <td>{{ record.course|default:'—' }}{% if record.major %}<small>{{ record.major }}</small>{% endif %}</td>
+            <td>{% if record.claimed_by_id %}<span class="gr-pill gr-pill--claimed"><i class="fas fa-link" aria-hidden="true"></i> Claimed</span>{% else %}<span class="gr-pill gr-pill--available">Available</span>{% endif %}</td>
+            <td><span title="{{ record.source_filename }}">{{ record.source_filename|default:'—'|truncatechars:28 }}</span>{% if record.source_row %}<small>Row {{ record.source_row }}{% if record.source_sheet %} · {{ record.source_sheet }}{% endif %}</small>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="gr-table-empty">No registrar records match these filters.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if registry_page.paginator.num_pages > 1 %}
+    <div class="gr-pagination">
+      <span>Page {{ registry_page.number }} of {{ registry_page.paginator.num_pages }}</span>
+      <div>
+        {% if registry_page.has_previous %}<a class="btn btn-outline-secondary btn-sm" href="?q={{ q|urlencode }}&amp;year={{ selected_year|urlencode }}&amp;campus={{ selected_campus|urlencode }}&amp;college={{ selected_college|urlencode }}&amp;status={{ selected_status|urlencode }}&amp;page={{ registry_page.previous_page_number }}">Previous</a>{% endif %}
+        {% if registry_page.has_next %}<a class="btn btn-outline-secondary btn-sm" href="?q={{ q|urlencode }}&amp;year={{ selected_year|urlencode }}&amp;campus={{ selected_campus|urlencode }}&amp;college={{ selected_college|urlencode }}&amp;status={{ selected_status|urlencode }}&amp;page={{ registry_page.next_page_number }}">Next</a>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="gr-panel gr-import" id="registry-compare" aria-labelledby="gr-import-title">
+    <div class="gr-panel__head">
+      <div>
+        <h2 id="gr-import-title"><i class="fas fa-file-circle-check" aria-hidden="true"></i> Compare &amp; import registrar file</h2>
+        <p>Preview all changes against the current registry. No records are changed until you confirm the import.</p>
+      </div>
+    </div>
+    <ol class="gr-steps" aria-label="Import steps"><li><strong>1</strong> Upload</li><li><strong>2</strong> Compare</li><li><strong>3</strong> Review</li><li><strong>4</strong> Confirm</li></ol>
+    <form id="grImportForm" method="post" enctype="multipart/form-data" data-compare-url="{% url 'alumni_directory:registry_compare' %}" data-import-url="{% url 'alumni_directory:registry_import' %}">
+      {% csrf_token %}
+      <div class="gr-import-grid">
+        <div class="gr-field gr-field--file">
+          <label for="grImportFile">Registrar CSV or Excel (.xlsx)</label>
+          <input id="grImportFile" class="form-control" type="file" name="registry_file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+          <small>Maximum 10 MB. Original registrar files are parsed in memory and not published to the site.</small>
+        </div>
+        <div class="gr-field">
+          <label for="grImportCampus">Campus for unlabelled records</label>
+          <select id="grImportCampus" class="form-select" name="campus" required>
+            <option value="">Select confirmed campus…</option>
+            {% for code, label in campuses %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+          </select>
+          <small>If a list does not identify campuses for each graduate, verify the campus with the registrar before importing.</small>
+        </div>
+        <div class="gr-field">
+          <label for="grImportYear">Year fallback (optional)</label>
+          <input id="grImportYear" class="form-control" type="number" name="year_fallback" min="1940" max="2100" placeholder="Detect from file" inputmode="numeric">
+          <small>Only used when a year cannot be identified from the document.</small>
+        </div>
+      </div>
+      <div class="gr-import-notice"><i class="fas fa-shield-halved" aria-hidden="true"></i> Registrar records establish potential registration eligibility; they are not registered alumni accounts. Confirm that the uploaded list is approved by the registrar before importing.</div>
+      <div class="gr-controls"><button id="grCompareButton" class="btn btn-primary" type="submit"><i class="fas fa-code-compare" aria-hidden="true"></i> Compare with registry</button><button id="grExportComparison" class="btn btn-outline-secondary" type="button" disabled><i class="fas fa-file-csv" aria-hidden="true"></i> Download comparison CSV</button></div>
+      <div id="grImportStatus" class="gr-status" role="status" aria-live="polite" hidden></div>
+    </form>
+    <div id="grComparison" class="gr-comparison" hidden>
+      <h3>Comparison results</h3>
+      <div class="gr-compare-metrics" id="grComparisonMetrics"></div>
+      <p id="grComparisonHint" class="gr-muted"></p>
+      <div class="gr-table-scroller" role="region" tabindex="0" aria-label="File reconciliation preview">
+        <table class="gr-table"><thead><tr><th>Source</th><th>Graduate</th><th>Year</th><th>Campus</th><th>Program</th><th>Result</th><th>Details</th></tr></thead><tbody id="grComparisonRows"></tbody></table>
+      </div>
+      <div class="gr-confirm">
+        <label class="gr-confirm__check"><input type="checkbox" id="grConfirmCheckbox"> I have reviewed the comparison and confirmed that the registrar file is approved for use.</label>
+        <button class="btn btn-warning" id="grCommitButton" disabled type="button"><i class="fas fa-file-import" aria-hidden="true"></i> Import reviewed records</button>
+      </div>
+      <p class="gr-muted">Rows flagged for review are skipped. Claimed records with conflicting data are never silently overwritten. The import rechecks all rows before saving.</p>
+    </div>
+  </section>
+</div>
+{% endblock %}
+{% block page_specific_js %}
+<script src="{% static 'js/modules/graduate-registry-page.js' %}" defer></script>
+{% endblock %}

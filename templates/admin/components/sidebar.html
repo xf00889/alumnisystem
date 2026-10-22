@@ -43,6 +43,13 @@
                         <i aria-hidden="true" class="fas fa-table"></i>
                         <span>Alumni Management</span>
                     </a>
+                    {% if user.is_superuser or user.is_staff and not user.profile.is_hr and not user.profile.is_alumni_coordinator %}
+                    <a class="staff-nav__link {% if request.resolver_match.url_name == 'graduate_registry' %}active{% endif %}"
+                       href="{% url 'alumni_directory:graduate_registry' %}">
+                        <i aria-hidden="true" class="fas fa-clipboard-check"></i>
+                        <span>Graduate Registry</span>
+                    </a>
+                    {% endif %}
                     <a class="staff-nav__link {% if request.resolver_match.url_name == 'admin_group_directory' %}active{% endif %}" 
                        href="{% url 'alumni_groups:admin_group_directory' %}">
                         <i aria-hidden="true" class="fas fa-users"></i>
