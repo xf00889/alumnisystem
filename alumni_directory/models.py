@@ -177,6 +177,15 @@ class GraduateRegistry(models.Model):
     graduation_year = models.IntegerField()
     course = models.CharField(max_length=200, blank=True)
     email = models.EmailField(blank=True)
+    # Registrar rosters may contain fields unavailable on sign-up accounts.
+    # Retain them without creating or changing user accounts.
+    middle_name = models.CharField(max_length=150, blank=True)
+    suffix = models.CharField(max_length=30, blank=True)
+    college = models.CharField(max_length=10, blank=True, choices=Alumni.COLLEGE_CHOICES)
+    major = models.CharField(max_length=200, blank=True)
+    source_filename = models.CharField(max_length=255, blank=True)
+    source_sheet = models.CharField(max_length=100, blank=True)
+    source_row = models.PositiveIntegerField(null=True, blank=True)
     claimed_by = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

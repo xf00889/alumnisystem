@@ -18,60 +18,15 @@ from django.conf import settings
 from django.contrib import messages
 from accounts.models import Profile, Experience
 from .forms import AlumniForm, AlumniFilterForm, AlumniSearchForm, AlumniDocumentForm
-from .directory_search import normalize_directory_search, with_alumni_name_search
 import csv
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 
-def _registrar_csv_rows(decoded_file):
-    """Yield normalized rows from either supported registrar CSV layout."""
-    if 'CANDIDATES FOR GRADUATION' not in decoded_file.upper():
-        yield from csv.DictReader(decoded_file.splitlines())
-        return
-
-    school_year = re.search(r'\bSY\s+(\d{4})-(\d{4})\b', decoded_file, re.IGNORECASE)
-    first_year = school_year.group(1) if school_year else ''
-    final_year = school_year.group(2) if school_year else ''
-    base_course = current_course = ''
-
-    for columns in csv.reader(decoded_file.splitlines()):
-        if not columns:
-            continue
-
-        first_column = columns[0].strip()
-        heading = ' '.join(first_column.split())
-        heading_upper = heading.upper()
-
-        if heading_upper.startswith("CONT'N OF BACHELOR"):
-            current_course = re.sub(r"^CONT'N OF\s+", '', heading, flags=re.IGNORECASE)
-            continue
-
-        if heading_upper.startswith('BACHELOR'):
-            current_course = heading
-            base_course = heading.split(' - ', 1)[0]
-            continue
-
-        if heading_upper.startswith('MAJOR:') or heading_upper.startswith('AREA OF CONCENTRATION:'):
-            major = heading.split(':', 1)[1].strip()
-            current_course = f'{base_course} - {major}' if base_course and major else base_course
-            continue
-
-        if not re.fullmatch(r'\*{0,2}\d+\s*', first_column) or len(columns) < 4:
-            continue
-
-        given_names = columns[1].strip()
-        last_name = columns[3].strip()
-        graduation_year = first_year if first_column.startswith('*') and not first_column.startswith('**') else final_year
-        yield {
-            'FullName': f'{last_name}, {given_names}',
-            'FirstName': given_names,
-            'LastName': last_name,
-            'Year': graduation_year,
-            'Course': current_course,
-            'Campus': 'BSC',
-        }
+# The parser lives in a dedicated service because registrar files are not
+# standard tabular CSVs: they include college/program sections and year markers.
+from .services.graduate_registry_import import import_graduate_registry
 
 
 def coordinator_scoped_alumni(request, queryset):
@@ -219,89 +174,6 @@ def is_admin(user):
     return user.is_superuser or user.is_staff or is_coordinator
 
 
-def import_graduate_registry(csv_file):
-    """Import registrar CSV rows without creating user accounts."""
-    try:
-        decoded_file = csv_file.read().decode('utf-8-sig')
-    except UnicodeDecodeError:
-        csv_file.seek(0)
-        decoded_file = csv_file.read().decode('latin-1')
-
-    campus_aliases = {
-        'NORSU-MAIN': 'MAIN',
-        'NORSU-BAIS': 'BAIS1',
-        'NORSU-GUI': 'GUI',
-        'NORSU-MAB': 'MAB',
-        'NORSU-BSC': 'BSC',
-        'NORSU-SIA': 'SIATON',
-        'NORSU-PAM': 'PAM',
-    }
-    valid_campuses = dict(Alumni.CAMPUS_CHOICES)
-    imported_count = updated_count = error_count = 0
-
-    for row in _registrar_csv_rows(decoded_file):
-        full_name = (row.get('FullName') or row.get('Full Name') or row.get('full_name') or '').strip()
-        first_name = (row.get('FirstName') or '').strip()
-        last_name = (row.get('LastName') or '').strip()
-        graduation_year = (row.get('Year-1') or row.get('Year') or row.get('graduation_year') or '').strip()
-        course = (row.get('Course Grad') or row.get('Course') or row.get('course') or '').strip()
-        email = (row.get('Email Address') or row.get('Email') or row.get('email') or '').strip()
-        campus_value = (row.get('Campus') or row.get('campus') or 'BSC').strip().upper()
-        campus = campus_aliases.get(campus_value, campus_value)
-
-        if not (full_name or (first_name and last_name)) or not graduation_year:
-            error_count += 1
-            continue
-
-        try:
-            graduation_year = int(graduation_year)
-        except ValueError:
-            error_count += 1
-            continue
-
-        if campus not in valid_campuses:
-            error_count += 1
-            continue
-
-        if not first_name or not last_name:
-            if ',' in full_name:
-                last_name, given_names = (part.strip() for part in full_name.split(',', 1))
-                first_name = given_names.split()[0] if given_names else ''
-            else:
-                name_parts = full_name.split()
-                first_name = name_parts[0]
-                last_name = name_parts[-1] if len(name_parts) > 1 else ''
-
-        if not first_name or not last_name:
-            error_count += 1
-            continue
-
-        existing = GraduateRegistry.objects.filter(
-            first_name__iexact=first_name,
-            last_name__iexact=last_name,
-            campus=campus,
-            graduation_year=graduation_year,
-            course__iexact=course,
-        ).first()
-        if existing:
-            existing.first_name = first_name
-            existing.last_name = last_name
-            existing.course = course
-            existing.email = email
-            existing.save(update_fields=['first_name', 'last_name', 'course', 'email', 'updated_at'])
-            updated_count += 1
-        else:
-            GraduateRegistry.objects.create(
-                first_name=first_name,
-                last_name=last_name,
-                campus=campus,
-                graduation_year=graduation_year,
-                course=course,
-                email=email,
-            )
-            imported_count += 1
-
-    return imported_count, updated_count, error_count
 
 @login_required
 def alumni_list(request):
@@ -361,27 +233,30 @@ def alumni_list(request):
         can_view_alumni_details = is_admin(request.user)
 
         # Apply filters
-        search_query = normalize_directory_search(request.GET.get('search', ''))
+        search_query = request.GET.get('search', '').strip()
         if search_query:
-            queryset, name_match = with_alumni_name_search(queryset, search_query)
             if can_view_alumni_details:
-                # Keep the existing staff-only directory search fields.
+                # Create a lookup for college display names
                 college_lookup = Q()
                 for code, name in Alumni.COLLEGE_CHOICES:
                     if search_query.lower() in name.lower():
                         college_lookup |= Q(college=code)
 
                 queryset = queryset.filter(
-                    name_match |
+                    Q(user__first_name__icontains=search_query) |
+                    Q(user__last_name__icontains=search_query) |
                     Q(course__icontains=search_query) |
                     Q(city__icontains=search_query) |
                     Q(province__icontains=search_query) |
                     Q(current_company__icontains=search_query) |
                     Q(job_title__icontains=search_query) |
-                    college_lookup
+                    college_lookup  # Include college name search
                 )
             else:
-                queryset = queryset.filter(name_match)
+                queryset = queryset.filter(
+                    Q(user__first_name__icontains=search_query) |
+                    Q(user__last_name__icontains=search_query)
+                )
         
         # Graduation Year filter
         grad_year = [y for y in request.GET.getlist('graduation_year') if y]
@@ -429,7 +304,7 @@ def alumni_list(request):
             queryset = Alumni.objects.none()
         
         # Get total counts and paginate the directory results.
-        total_alumni = initial_count
+        total_alumni = Alumni.objects.count()
         total_registered = queryset.count()
         paginator = Paginator(queryset, 12)
         alumni_page = paginator.get_page(request.GET.get('page'))
@@ -996,21 +871,42 @@ def alumni_management(request):
         raise PermissionDenied('Only central administrators may import the university-wide registrar list.')
     try:
         if request.method == 'POST' and 'import_registry_csv' in request.POST:
-            csv_file = request.FILES.get('registry_csv_file')
-            if not csv_file:
-                messages.error(request, 'Please select a registrar CSV file to import.')
+            upload = request.FILES.get('registry_csv_file')
+            ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            if not upload:
+                outcome = {'ok': False, 'message': 'Choose a CSV or XLSX registrar file.'}
+                if ajax:
+                    return JsonResponse(outcome, status=400)
+                messages.error(request, outcome['message'])
             else:
                 try:
-                    imported_count, updated_count, error_count = import_graduate_registry(csv_file)
-                    messages.success(
-                        request,
-                        f'Registrar list imported: {imported_count} new and {updated_count} updated records.',
+                    result = import_graduate_registry(
+                        upload,
+                        default_campus=request.POST.get('registry_campus') or 'BSC',
+                        graduation_year_override=request.POST.get('registry_year') or None,
                     )
-                    if error_count:
-                        messages.warning(request, f'{error_count} invalid or incomplete rows were skipped.')
-                except Exception as exc:
-                    logger.error('Registrar CSV import failed: %s', exc, exc_info=True)
-                    messages.error(request, f'Error importing registrar CSV file: {exc}')
+                    outcome = {
+                        'ok': True,
+                        'message': 'Registrar records processed. No alumni accounts were created.',
+                        'created': result.created,
+                        'updated': result.updated,
+                        'skipped': result.skipped,
+                        'warnings': result.warnings[:12],
+                    }
+                    if ajax:
+                        return JsonResponse(outcome)
+                    messages.success(request, f"Registrar import complete: {result.created} new, {result.updated} updated, {result.skipped} skipped.")
+                    if result.warnings:
+                        messages.warning(request, 'Some rows need review. ' + '; '.join(result.warnings[:3]))
+                except (ValueError, UnicodeError) as exc:
+                    if ajax:
+                        return JsonResponse({'ok': False, 'message': str(exc)}, status=400)
+                    messages.error(request, str(exc))
+                except Exception:
+                    logger.exception('Registrar import failed')
+                    if ajax:
+                        return JsonResponse({'ok': False, 'message': 'Import failed. No changes were committed. Check server logs.'}, status=500)
+                    messages.error(request, 'Import failed. No changes were committed. Check server logs.')
 
         # Base queryset with efficient loading
         queryset = coordinator_scoped_alumni(request, Alumni.objects.select_related('user', 'user__profile').all())
@@ -1420,6 +1316,7 @@ def alumni_management(request):
             'all_programs': all_programs,  # All available programs in the system
             'colleges': Alumni.COLLEGE_CHOICES,
             'campuses': dropdown_campuses,  # Deduplicated campus list
+            'registry_campuses': Alumni.CAMPUS_CHOICES,  # Import uses exact campus codes
             'courses': courses,  # Add courses for filter dropdown
             'search_query': search_query,
             'selected_campus': campus,
