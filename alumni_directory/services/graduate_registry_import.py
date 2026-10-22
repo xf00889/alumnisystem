@@ -274,15 +274,14 @@ def _parse_data(data, filename, default_campus, fallback_year, result):
     raise ValueError('Only .csv and .xlsx registrar files are supported.')
 
 
-def import_graduate_registry(upload, *, default_campus='BSC', graduation_year_override=None):
-    """Import rows atomically; safe to re-import, never unclaims a graduate."""
+def _read_uploaded_registry(upload, *, default_campus, graduation_year_override=None):
+    """Parse once with the same safety limits for preview, comparison and import."""
     filename = Path(upload.name or '').name
-    suffix = Path(filename).suffix.lower()
-    if suffix not in ('.csv', '.xlsx'):
+    if Path(filename).suffix.lower() not in ('.csv', '.xlsx'):
         raise ValueError('Only .csv and .xlsx registrar files are supported.')
     campus = CAMPUS_ALIASES.get(clean(default_campus).upper(), clean(default_campus).upper())
     if campus not in dict(Alumni.CAMPUS_CHOICES):
-        raise ValueError('Select a valid campus before importing.')
+        raise ValueError('Select the registrar-confirmed campus before comparing or importing.')
     fallback_year = None
     if graduation_year_override not in (None, ''):
         try:
@@ -302,71 +301,159 @@ def import_graduate_registry(upload, *, default_campus='BSC', graduation_year_ov
         raise ValueError('No valid graduate rows were found. Check the file layout, academic year and college/program headings.')
     if len(records) > MAX_ROSTER_ROWS:
         raise ValueError('Too many graduates in a single file.')
-    with transaction.atomic():
-        for index, info in enumerate(records, 1):
-            place = f"{info['source_sheet'] or filename} row {info['source_row']}"
-            try:
-                year = int(info.get('graduation_year') or 0)
-            except (TypeError, ValueError):
-                result.warn(place, 'Invalid year')
-                continue
-            first_name = clean(info.get('first_name'))
-            last_name = clean(info.get('last_name'))
-            course = clean(info.get('course'))
-            selected_campus = CAMPUS_ALIASES.get(clean(info.get('campus') or campus).upper(), clean(info.get('campus') or campus).upper())
-            college = clean(info.get('college'))
-            if college and college not in dict(Alumni.COLLEGE_CHOICES):
-                college = _college_code(college)
-            if not (first_name and last_name and 1940 <= year <= 2100 and selected_campus in dict(Alumni.CAMPUS_CHOICES)):
-                result.warn(place, 'Invalid or incomplete graduate name, year, or campus')
-                continue
-            if any(len(v) > limit for v,limit in [(first_name,150),(last_name,150),(course,200),(clean(info.get('middle_name')),150),(clean(info.get('major')),200),(clean(info.get('suffix')),30)]):
-                result.warn(place, 'A value is longer than the allowed database field')
-                continue
-            base = GraduateRegistry.objects.select_for_update().filter(
-                first_name__iexact=first_name, last_name__iexact=last_name,
-                campus=selected_campus, graduation_year=year,
+    return filename, campus, records, result
+
+
+def _prepare_registry_row(info, campus):
+    """Normalize once for both preview and commit. Returns an explanatory error when invalid."""
+    try:
+        year = int(info.get('graduation_year') or 0)
+    except (ValueError, TypeError):
+        year = 0
+    first = clean(info.get('first_name'))
+    last = clean(info.get('last_name'))
+    course = clean(info.get('course'))
+    selected = clean(info.get('campus') or campus).upper()
+    selected = CAMPUS_ALIASES.get(selected, selected)
+    college = clean(info.get('college'))
+    if college and college not in dict(Alumni.COLLEGE_CHOICES):
+        college = _college_code(college)
+    if not (first and last and 1940 <= year <= 2100 and selected in dict(Alumni.CAMPUS_CHOICES)):
+        return None, 'Invalid or incomplete name, year or campus'
+    if any(len(val) > limit for val, limit in (
+        (first,150),(last,150),(course,200),
+        (clean(info.get('middle_name')),150),
+        (clean(info.get('major')),200),(clean(info.get('suffix')),30),
+    )):
+        return None, 'A value is longer than the allowed database field'
+    return {
+        'first_name': first, 'last_name': last,
+        'graduation_year': year, 'campus': selected, 'course': course,
+        'middle_name': clean(info.get('middle_name')),
+        'suffix': clean(info.get('suffix')),
+        'college': college, 'major': clean(info.get('major')),
+        'email': clean(info.get('email')),
+        'source_sheet': clean(info.get('source_sheet'))[:100],
+        'source_row': info.get('source_row'),
+    }, None
+
+
+def _find_registry_match(info, *, lock=False):
+    queryset = GraduateRegistry.objects
+    if lock:
+        queryset = queryset.select_for_update()
+    matches = list(queryset.filter(
+        first_name__iexact=info['first_name'],
+        last_name__iexact=info['last_name'],
+        campus=info['campus'],
+        graduation_year=info['graduation_year'],
+    )[:3])
+    same_course = [r for r in matches if clean(r.course).casefold() == info['course'].casefold()]
+    if len(same_course) == 1:
+        return same_course[0], None
+    if len(matches) > 1 or len(same_course) > 1:
+        return None, 'Multiple existing records share this identity; review manually'
+    if len(matches) == 1:
+        entry = matches[0]
+        # Different nonblank degree programs can be different people with the same name.
+        if clean(entry.course) and info['course'] and clean(entry.course).casefold() != info['course'].casefold():
+            return None, 'Existing name/year/campus matches another program; review manually'
+        return entry, None
+    return None, None
+
+
+def _row_changes(entry, info):
+    changed = []
+    for key in ('course', 'middle_name', 'suffix', 'college', 'major', 'email'):
+        incoming = info.get(key, '')
+        previous = clean(getattr(entry, key, ''))
+        # Import never overwrites email and never erases a field with blank data.
+        if not incoming or (key == 'email' and previous):
+            continue
+        if incoming.casefold() != previous.casefold():
+            changed.append(key.replace('_', ' ').title())
+    return changed
+
+
+def _reconcile_rows(records, campus, filename, result, *, commit=False):
+    """Same matching policy for preview and import; writes are atomic when requested."""
+    summary = {'new': 0, 'unchanged': 0, 'update': 0, 'review': 0, 'skipped': result.skipped}
+    rows = []
+    seen_keys = set()
+    for raw in records:
+        place = f"{raw.get('source_sheet') or filename} row {raw.get('source_row')}"
+        info, error = _prepare_registry_row(raw, campus)
+        if error:
+            summary['skipped'] += 1
+            if len(result.warnings) < 30: result.warnings.append(f'{place}: {error}')
+            rows.append({'name': clean(raw.get('first_name')) + ' ' + clean(raw.get('last_name')), 'year': str(raw.get('graduation_year') or ''), 'campus': campus, 'course': clean(raw.get('course')), 'college': clean(raw.get('college')), 'source': place, 'status': 'skipped', 'changes': error})
+            continue
+        key = (info['first_name'].casefold(), info['last_name'].casefold(), info['campus'], info['graduation_year'], info['course'].casefold())
+        if key in seen_keys:
+            entry, ambiguity = None, 'Duplicate graduate row in the uploaded file'
+        else:
+            seen_keys.add(key)
+            entry, ambiguity = _find_registry_match(info, lock=commit)
+        changes = _row_changes(entry, info) if entry is not None else []
+        if not ambiguity and entry is not None and entry.claimed_by_id and changes:
+            ambiguity = 'Claimed registry record has different details; review before changing'
+        if ambiguity:
+            status = 'review'; detail = ambiguity
+        elif entry is None:
+            status = 'new'; detail = 'Not yet in Graduate Registry'
+        elif changes:
+            status = 'update'; detail = ', '.join(changes)
+        else:
+            status = 'unchanged'; detail = 'Matches registry'
+        summary[status] += 1
+        rows.append({
+            'name': f"{info['last_name']}, {info['first_name']} {info['middle_name']}".strip(),
+            'year': info['graduation_year'], 'campus': info['campus'],
+            'course': info['course'], 'college': info['college'], 'source': place,
+            'status': status, 'changes': detail,
+            'claimed': bool(entry and entry.claimed_by_id),
+        })
+        if commit and status == 'new':
+            GraduateRegistry.objects.create(
+                first_name=info['first_name'], last_name=info['last_name'],
+                campus=info['campus'], graduation_year=info['graduation_year'],
+                course=info['course'], email=info['email'],
+                middle_name=info['middle_name'], suffix=info['suffix'], college=info['college'], major=info['major'],
+                source_filename=filename[:255],source_sheet=info['source_sheet'],source_row=info['source_row'],
             )
-            matches = list(base[:3])
-            same_course = [r for r in matches if clean(r.course).casefold() == course.casefold()]
-            if len(same_course) == 1:
-                entry = same_course[0]
-            elif len(matches) == 1:
-                entry = matches[0]
-            elif not matches:
-                entry = None
-            else:
-                result.warn(place, 'Ambiguous existing registrar records; review manually')
-                continue
-            payload = {
-                'middle_name': clean(info.get('middle_name')),
-                'suffix': clean(info.get('suffix')),
-                'college': college,
-                'major': clean(info.get('major')),
-                'source_filename': filename[:255],
-                'source_sheet': clean(info.get('source_sheet'))[:100],
-                'source_row': info.get('source_row'),
-            }
-            if entry is None:
-                GraduateRegistry.objects.create(
-                    first_name=first_name, last_name=last_name,
-                    campus=selected_campus, graduation_year=year,
-                    course=course, email=clean(info.get('email')),
-                    **payload,
-                )
-                result.created += 1
-            else:
-                # Avoid clobbering verified/claimed identity or already-known email.
-                if not entry.claimed_by_id:
-                    entry.course = course or entry.course
-                for key,value in payload.items():
-                    if value not in ('',None):
-                        setattr(entry,key,value)
-                if info.get('email') and not entry.email:
-                    entry.email = clean(info['email'])
-                entry.save(update_fields=[
-                    'course','email','middle_name','suffix','college','major',
-                    'source_filename','source_sheet','source_row','updated_at',
-                ])
-                result.updated += 1
+        elif commit and status in ('update', 'unchanged'):
+            # Refresh import provenance, but never replace an already-claimed identity.
+            entry.source_filename = filename[:255]
+            entry.source_sheet = info['source_sheet']
+            entry.source_row = info['source_row']
+            if not entry.claimed_by_id:
+                if info['course']: entry.course = info['course']
+                for attr in ('middle_name', 'suffix', 'college', 'major'):
+                    if info[attr]: setattr(entry, attr, info[attr])
+                if info['email'] and not entry.email: entry.email = info['email']
+            entry.save()
+    return summary, rows
+
+
+def compare_graduate_registry(upload, *, default_campus, graduation_year_override=None):
+    """Read-only reconciliation; NEVER saves, deletes or creates registry/user records."""
+    filename, campus, records, result = _read_uploaded_registry(
+        upload, default_campus=default_campus, graduation_year_override=graduation_year_override
+    )
+    totals, rows = _reconcile_rows(records, campus, filename, result)
+    return {'filename': filename, 'totals': totals, 'rows': rows, 'warnings': result.warnings}
+
+
+def import_graduate_registry(upload, *, default_campus='BSC', graduation_year_override=None):
+    """Atomic import preserving claims and requiring review for ambiguous records."""
+    filename, campus, records, result = _read_uploaded_registry(
+        upload, default_campus=default_campus, graduation_year_override=graduation_year_override
+    )
+    with transaction.atomic():
+        totals, _ = _reconcile_rows(records, campus, filename, result, commit=True)
+    result.created = totals['new']
+    result.updated = totals['update'] + totals['unchanged']
+    result.skipped = totals['review'] + totals['skipped']
+    if totals['review'] and len(result.warnings) < 30:
+        result.warnings.append(f"{totals['review']} ambiguous/claimed rows need manual review and were not imported")
     return result
