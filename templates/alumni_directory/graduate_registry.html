@@ -15,12 +15,61 @@
     <a class="gr-navigation__link" href="{% url 'alumni_directory:alumni_management' %}"><i class="fas fa-users" aria-hidden="true"></i> Registered Alumni</a>
     <a class="gr-navigation__link active" href="{% url 'alumni_directory:graduate_registry' %}" aria-current="page"><i class="fas fa-clipboard-check" aria-hidden="true"></i> Graduate Registry</a>
   </nav>
-  <div class="gr-summary" aria-label="Graduate registry totals">
+  <div class="gr-summary{% if q or selected_year or selected_campus or selected_college or selected_status %} gr-summary--filtered{% endif %}" aria-label="Graduate registry totals">
     <div class="gr-summary__card"><span>Registry entries</span><strong>{{ registry_total }}</strong><small>Registrar records</small></div>
     <div class="gr-summary__card"><span>Available for claim</span><strong>{{ registry_available }}</strong><small>Not yet linked to an account</small></div>
     <div class="gr-summary__card"><span>Claimed records</span><strong>{{ registry_claimed }}</strong><small>Linked to a user account</small></div>
-    <div class="gr-summary__card"><span>Matching filters</span><strong>{{ registry_filtered }}</strong><small>On this registry page</small></div>
+    {% if q or selected_year or selected_campus or selected_college or selected_status %}<div class="gr-summary__card"><span>Matching filters</span><strong>{{ registry_filtered }}</strong><small>Across all matching pages</small></div>{% endif %}
   </div>
+
+  <details class="gr-panel gr-import" id="registry-compare">
+    <summary class="gr-import-toggle" id="gr-import-title">
+      <span><i class="fas fa-file-circle-check" aria-hidden="true"></i> Compare &amp; import registrar file</span>
+      <small>Upload CSV/XLSX · Review differences · Confirm safe changes</small>
+    </summary>
+    <div class="gr-import-content">
+    <ol class="gr-steps" aria-label="Import steps"><li><strong>1</strong> Upload</li><li><strong>2</strong> Compare</li><li><strong>3</strong> Review</li><li><strong>4</strong> Confirm</li></ol>
+    <form id="grImportForm" method="post" enctype="multipart/form-data" data-compare-url="{% url 'alumni_directory:registry_compare' %}" data-import-url="{% url 'alumni_directory:registry_import' %}">
+      {% csrf_token %}
+      <div class="gr-import-grid">
+        <div class="gr-field gr-field--file">
+          <label for="grImportFile">Registrar CSV or Excel (.xlsx)</label>
+          <input id="grImportFile" class="form-control" type="file" name="registry_file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+        </div>
+        <div class="gr-field">
+          <label for="grImportCampus">Campus for unlabelled records</label>
+          <select id="grImportCampus" class="form-select" name="campus" required>
+            <option value="">Select confirmed campus…</option>
+            {% for code, label in campuses %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="gr-field">
+          <label for="grImportYear">Year fallback (optional)</label>
+          <input id="grImportYear" class="form-control" type="number" name="year_fallback" min="1940" max="2100" placeholder="Detect from file" inputmode="numeric">
+        </div>
+      </div>
+      <div class="gr-import-notice"><i class="fas fa-shield-halved" aria-hidden="true"></i> Registrar records establish potential registration eligibility; they are not registered alumni accounts. Confirm that the uploaded list is approved by the registrar before importing.</div>
+      <div class="gr-controls"><button id="grCompareButton" class="btn btn-primary" type="submit"><i class="fas fa-code-compare" aria-hidden="true"></i> Compare with registry</button><button id="grExportComparison" class="btn btn-outline-secondary" type="button" disabled><i class="fas fa-file-csv" aria-hidden="true"></i> Download comparison CSV</button></div>
+      <div id="grImportStatus" class="gr-status" role="status" aria-live="polite" hidden></div>
+    </form>
+    <div id="grComparison" class="gr-comparison" hidden>
+      <h3>Changes requiring attention</h3>
+      <div class="gr-compare-metrics" id="grComparisonMetrics"></div>
+      <p id="grComparisonHint" class="gr-muted"></p>
+      <div class="gr-confirm" aria-label="Confirm reviewed graduate import">
+        <label class="gr-confirm__check"><input type="checkbox" id="grConfirmCheckbox"> I reviewed the differences and confirmed that the registrar approved this file.</label>
+        <button class="btn btn-primary" id="grCommitButton" disabled type="button"><i class="fas fa-file-import" aria-hidden="true"></i> Import eligible records</button>
+      </div>
+      <div class="gr-tabs" role="tablist" aria-label="Comparison categories">
+        <button type="button" role="tab" class="gr-tab" id="grTabDifferences" aria-selected="true" aria-controls="grComparisonTablePanel">Differences <span id="grDifferenceCount">0</span></button>
+        <button type="button" role="tab" class="gr-tab" id="grTabNew" aria-selected="false" aria-controls="grComparisonTablePanel">New graduates <span id="grNewCount">0</span></button>
+      </div>
+      <div class="gr-table-scroller" role="tabpanel" id="grComparisonTablePanel" aria-labelledby="grTabDifferences" tabindex="0">
+        <table class="gr-table"><thead><tr><th>Source</th><th>Graduate</th><th>Year</th><th>Campus</th><th>Program</th><th>Result</th><th>Details</th></tr></thead><tbody id="grComparisonRows"></tbody></table>
+      </div>
+    </div>
+    </div>
+  </details>
 
   <section class="gr-panel" id="registry-list" aria-labelledby="registry-list-title">
     <div class="gr-panel__head">
@@ -28,7 +77,7 @@
         <h2 id="registry-list-title"><i class="fas fa-list-check" aria-hidden="true"></i> Imported graduate records</h2>
         <p>Search, review registrar source references and check whether each record has been claimed.</p>
       </div>
-      <a class="gr-link" href="#registry-compare"><i class="fas fa-file-import" aria-hidden="true"></i> Compare or import a file <i class="fas fa-arrow-down" aria-hidden="true"></i></a>
+      <a class="btn btn-primary gr-primary-action" href="#registry-compare" id="grJumpToCompare"><i class="fas fa-file-import" aria-hidden="true"></i> Compare / Import</a>
     </div>
     <form action="{% url 'alumni_directory:graduate_registry' %}" method="get" class="gr-filters">
       <div class="gr-field gr-field--wide"><label for="registrySearch">Search graduates or program</label><input id="registrySearch" class="form-control" name="q" value="{{ q }}" maxlength="100" placeholder="Name, program, or major"></div>
@@ -69,54 +118,38 @@
     {% endif %}
   </section>
 
-  <section class="gr-panel gr-import" id="registry-compare" aria-labelledby="gr-import-title">
-    <div class="gr-panel__head">
-      <div>
-        <h2 id="gr-import-title"><i class="fas fa-file-circle-check" aria-hidden="true"></i> Compare &amp; import registrar file</h2>
-        <p>Preview all changes against the current registry. No records are changed until you confirm the import.</p>
+  <dialog id="grConfirmDialog" class="gr-dialog" aria-labelledby="grConfirmTitle" aria-describedby="grConfirmMessage">
+    <div class="gr-dialog__body">
+      <span class="gr-dialog__confirm-icon" aria-hidden="true"><i class="fas fa-file-import"></i></span>
+      <h2 id="grConfirmTitle">Confirm registrar import?</h2>
+      <p id="grConfirmMessage">You are about to import reviewed graduate records.</p>
+      <div class="gr-dialog__confirmation-counts" id="grConfirmCounts"></div>
+      <small>Only eligible new and safe unclaimed updates are saved. Records requiring manual review are skipped.</small>
+      <div class="gr-dialog__actions">
+        <button type="button" class="btn btn-outline-secondary" id="grConfirmCancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="grConfirmProceed"><i class="fas fa-check" aria-hidden="true"></i> Confirm &amp; import</button>
       </div>
     </div>
-    <ol class="gr-steps" aria-label="Import steps"><li><strong>1</strong> Upload</li><li><strong>2</strong> Compare</li><li><strong>3</strong> Review</li><li><strong>4</strong> Confirm</li></ol>
-    <form id="grImportForm" method="post" enctype="multipart/form-data" data-compare-url="{% url 'alumni_directory:registry_compare' %}" data-import-url="{% url 'alumni_directory:registry_import' %}">
-      {% csrf_token %}
-      <div class="gr-import-grid">
-        <div class="gr-field gr-field--file">
-          <label for="grImportFile">Registrar CSV or Excel (.xlsx)</label>
-          <input id="grImportFile" class="form-control" type="file" name="registry_file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
-          <small>Maximum 10 MB. Original registrar files are parsed in memory and not published to the site.</small>
-        </div>
-        <div class="gr-field">
-          <label for="grImportCampus">Campus for unlabelled records</label>
-          <select id="grImportCampus" class="form-select" name="campus" required>
-            <option value="">Select confirmed campus…</option>
-            {% for code, label in campuses %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
-          </select>
-          <small>If a list does not identify campuses for each graduate, verify the campus with the registrar before importing.</small>
-        </div>
-        <div class="gr-field">
-          <label for="grImportYear">Year fallback (optional)</label>
-          <input id="grImportYear" class="form-control" type="number" name="year_fallback" min="1940" max="2100" placeholder="Detect from file" inputmode="numeric">
-          <small>Only used when a year cannot be identified from the document.</small>
-        </div>
-      </div>
-      <div class="gr-import-notice"><i class="fas fa-shield-halved" aria-hidden="true"></i> Registrar records establish potential registration eligibility; they are not registered alumni accounts. Confirm that the uploaded list is approved by the registrar before importing.</div>
-      <div class="gr-controls"><button id="grCompareButton" class="btn btn-primary" type="submit"><i class="fas fa-code-compare" aria-hidden="true"></i> Compare with registry</button><button id="grExportComparison" class="btn btn-outline-secondary" type="button" disabled><i class="fas fa-file-csv" aria-hidden="true"></i> Download comparison CSV</button></div>
-      <div id="grImportStatus" class="gr-status" role="status" aria-live="polite" hidden></div>
-    </form>
-    <div id="grComparison" class="gr-comparison" hidden>
-      <h3>Comparison results</h3>
-      <div class="gr-compare-metrics" id="grComparisonMetrics"></div>
-      <p id="grComparisonHint" class="gr-muted"></p>
-      <div class="gr-table-scroller" role="region" tabindex="0" aria-label="File reconciliation preview">
-        <table class="gr-table"><thead><tr><th>Source</th><th>Graduate</th><th>Year</th><th>Campus</th><th>Program</th><th>Result</th><th>Details</th></tr></thead><tbody id="grComparisonRows"></tbody></table>
-      </div>
-      <div class="gr-confirm">
-        <label class="gr-confirm__check"><input type="checkbox" id="grConfirmCheckbox"> I have reviewed the comparison and confirmed that the registrar file is approved for use.</label>
-        <button class="btn btn-warning" id="grCommitButton" disabled type="button"><i class="fas fa-file-import" aria-hidden="true"></i> Import reviewed records</button>
-      </div>
-      <p class="gr-muted">Rows flagged for review are skipped. Claimed records with conflicting data are never silently overwritten. The import rechecks all rows before saving.</p>
+  </dialog>
+  <dialog id="grBusyDialog" class="gr-dialog gr-dialog--busy" aria-labelledby="grBusyTitle" aria-describedby="grBusyMessage">
+    <div class="gr-dialog__body" role="status" aria-live="polite">
+      <span class="gr-dialog__spinner" aria-hidden="true"></span>
+      <h2 id="grBusyTitle">Processing registrar file</h2>
+      <p id="grBusyMessage">Comparing records…</p>
+      <small>Please keep this page open. We are checking each record carefully.</small>
     </div>
-  </section>
+  </dialog>
+  <dialog id="grFeedbackDialog" class="gr-dialog" aria-labelledby="grFeedbackTitle" aria-describedby="grFeedbackMessage">
+    <div class="gr-dialog__body">
+      <span class="gr-dialog__result-icon" id="grFeedbackIcon" aria-hidden="true"><i class="fas fa-check"></i></span>
+      <h2 id="grFeedbackTitle">Comparison complete</h2>
+      <p id="grFeedbackMessage"></p>
+      <div class="gr-dialog__actions">
+        <button type="button" class="btn btn-primary" id="grFeedbackDone">Done</button>
+        <a href="{% url 'alumni_directory:graduate_registry' %}" class="btn btn-outline-secondary" id="grFeedbackRefresh" hidden>View updated registry</a>
+      </div>
+    </div>
+  </dialog>
 </div>
 {% endblock %}
 {% block page_specific_js %}

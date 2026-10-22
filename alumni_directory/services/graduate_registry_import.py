@@ -375,6 +375,20 @@ def _row_changes(entry, info):
     return changed
 
 
+def _row_change_details(entry, info):
+    """Human-readable, safely text-rendered before/after field differences."""
+    changes = []
+    for key in ('course', 'middle_name', 'suffix', 'college', 'major', 'email'):
+        incoming = clean(info.get(key, ''))
+        previous = clean(getattr(entry, key, ''))
+        if not incoming or (key == 'email' and previous):
+            continue
+        if incoming.casefold() != previous.casefold():
+            label = key.replace('_', ' ').title()
+            changes.append(f'{label}: {previous[:65] or "(blank)"} → {incoming[:65]}')
+    return '; '.join(changes)
+
+
 def _reconcile_rows(records, campus, filename, result, *, commit=False):
     """Same matching policy for preview and import; writes are atomic when requested."""
     summary = {'new': 0, 'unchanged': 0, 'update': 0, 'review': 0, 'skipped': result.skipped}
@@ -396,13 +410,13 @@ def _reconcile_rows(records, campus, filename, result, *, commit=False):
             entry, ambiguity = _find_registry_match(info, lock=commit)
         changes = _row_changes(entry, info) if entry is not None else []
         if not ambiguity and entry is not None and entry.claimed_by_id and changes:
-            ambiguity = 'Claimed registry record has different details; review before changing'
+            ambiguity = 'Claimed record: ' + _row_change_details(entry, info) + '; review before changing'
         if ambiguity:
             status = 'review'; detail = ambiguity
         elif entry is None:
             status = 'new'; detail = 'Not yet in Graduate Registry'
         elif changes:
-            status = 'update'; detail = ', '.join(changes)
+            status = 'update'; detail = _row_change_details(entry, info)
         else:
             status = 'unchanged'; detail = 'Matches registry'
         summary[status] += 1
