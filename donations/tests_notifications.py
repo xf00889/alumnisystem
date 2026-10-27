@@ -62,6 +62,20 @@ class PublicCampaignAndEmailRequirementsTests(TestCase):
             self.assertNotContains(response, hidden)
         self.assertContains(response, 'public_campaigns.css')
 
+    def test_authenticated_staff_can_open_public_fundraising_directory(self):
+        manager = get_user_model().objects.create_user(
+            username='fundraising-manager-test', email='manager@example.com',
+            password='StrongPass123!', is_staff=True,
+        )
+        self.client.force_login(manager)
+        response = self.client.get(reverse('donations:public_campaign_list'), secure=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'donations/public_campaign_list.html')
+        self.assertContains(response, 'Fundraising Initiatives')
+        self.assertContains(response, 'Public Open Campaign')
+        for hidden in ('Private Campaign', 'Draft Campaign', 'Disabled Campaign'):
+            self.assertNotContains(response, hidden)
+
     def test_authenticated_alumni_keeps_existing_campaign_page(self):
         user = get_user_model().objects.create_user(
             username='registered-campaign-test', email='donor@example.com', password='password-12345')

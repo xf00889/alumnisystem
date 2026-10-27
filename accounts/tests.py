@@ -206,7 +206,7 @@ class PostRegistrationTransactionTestCase(TestCase):
         })
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Alumni Record Not Verified')
+        self.assertContains(response, 'NO RECORD FOUND')
         self.assertFalse(GraduateRegistry.objects.filter(claimed_by=user).exists())
 
     def test_post_registration_handles_imported_match_without_broken_transaction(self):
@@ -312,7 +312,7 @@ class PostRegistrationTransactionTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'could not verify your alumni record')
-        self.assertContains(response, 'Alumni Record Not Verified')
+        self.assertContains(response, 'NO RECORD FOUND')
         user.profile.refresh_from_db()
         self.assertFalse(user.profile.has_completed_registration)
         self.assertFalse(Alumni.objects.filter(user=user).exists())

@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from alumni_directory.models import Alumni
+from alumni_directory.models import Alumni, GraduateRegistry
 
 TEST_MIDDLEWARE = [m for m in settings.MIDDLEWARE
                    if m != 'setup.middleware.SetupRequiredMiddleware']
@@ -30,10 +30,24 @@ class RecentRegisteredAlumniActivityTests(TestCase):
         )
         self.completed.profile.has_completed_registration = True
         self.completed.profile.save(update_fields=['has_completed_registration'])
+        self.unclaimed = User.objects.create_user(
+            username='unclaimed-alumni', password='StrongPass123!'
+        )
+        self.unclaimed.profile.has_completed_registration = True
+        self.unclaimed.profile.save(update_fields=['has_completed_registration'])
+        Alumni.objects.create(
+            user=self.unclaimed, campus='BSC', college='CTE', course='BEED',
+            graduation_year=2025, gender='F', province='Negros Oriental',
+            city='Bayawan', address='Test',
+        )
         Alumni.objects.create(
             user=self.completed, campus='BSC', college='CTE', course='BEED',
             graduation_year=2025, gender='F', province='Negros Oriental',
             city='Bayawan', address='Test',
+        )
+        GraduateRegistry.objects.create(
+            first_name='Completed', last_name='Alumnus', campus='BSC',
+            graduation_year=2025, course='BEED', claimed_by=self.completed,
         )
 
     def test_recent_activity_includes_only_completed_alumni_records(self):
@@ -45,3 +59,4 @@ class RecentRegisteredAlumniActivityTests(TestCase):
         self.assertContains(response, 'New Registered Alumni')
         self.assertNotContains(response, 'pending-enrollment')
         self.assertNotContains(response, 'profile-flag-only')
+        self.assertNotContains(response, 'unclaimed-alumni')

@@ -42,8 +42,17 @@ def home(request):
     # Add cache-busting headers to prevent caching issues
     response = None
     
+    # An incomplete sign-up may browse the read-only public landing page.
+    # This is NOT a registration bypass: all protected routes keep their
+    # normal authentication and completed-profile checks.
+    public_preview = (request.method == 'GET' and request.GET.get('view') == 'public'
+                      and request.user.is_authenticated
+                      and not request.user.is_staff and not request.user.is_superuser
+                      and not getattr(getattr(request.user, 'profile', None),
+                                      'has_completed_registration', False))
+
     # Handle authenticated users
-    if request.user.is_authenticated:
+    if request.user.is_authenticated and not public_preview:
         # Check if user is superuser
         if request.user.is_superuser:
             return redirect('core:admin_dashboard')

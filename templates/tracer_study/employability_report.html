@@ -55,12 +55,13 @@
     {% endif %}
   </section>
   {% if not error %}
-  <section class="employability-summary" aria-label="Key statistics">
-    <div class="employability-stat"><span>Tracer respondents · Class {{ cohort_year }}</span><strong>{{ graduates }}</strong><small>Completed alumni tracer questionnaires</small></div>
-    <div class="employability-stat"><span>Reported employed · Class {{ cohort_year }}</span><strong>{{ employed }}</strong><small>Self-reported currently employed</small></div>
-    <div class="employability-stat"><span>Respondent employment rate · as of {{ as_of|date:'M j, Y' }}</span><strong>{{ rate_display }}</strong><small>Latest reported status by snapshot date; not a historical rate for {{ period.label }}</small></div>
-    <div class="employability-stat"><span>Employed · missing/invalid start date</span><strong>{{ undated }}</strong><small>Not assigned to a reporting period without a valid current-job start date</small></div>
+  <section class="employability-summary" aria-label="Selected period hiring statistics">
+    <div class="employability-stat"><span>Tracer respondents · Class {{ cohort_year }}</span><strong>{{ graduates }}</strong><small>Submitted tracer-study responses in this graduating cohort</small></div>
+    <div class="employability-stat"><span>Dated current-job starts · {{ period.label }}</span><strong>{{ total_hired }}</strong><small>Only starts within the selected reporting period, through {{ period_cutoff|date:'M j, Y' }}</small></div>
+    <div class="employability-stat"><span>Selected-period start rate</span><strong>{{ period_start_rate_display }}</strong><small>Period starts ÷ tracer respondents, not overall employability</small></div>
+    <div class="employability-stat"><span>Respondent employment rate · as of {{ as_of|date:'M j, Y' }}</span><strong>{{ rate_display }}</strong><small>{{ employed }} currently employed in the latest tracer answers; not a historical rate for {{ period.label }}</small></div>
   </section>
+  <p class="employability-filter-scope employability-metric-note" role="note"><i class="fas fa-info-circle" aria-hidden="true"></i> {{ report_metric_note }}</p>
   {% if undated %}
   <div class="employability-data-notice" role="status">
     <i class="fas fa-info-circle" aria-hidden="true"></i>
@@ -85,9 +86,9 @@
       <p class="employability-chart-note">{{ total_hired }} dated current-job start{{ total_hired|pluralize }} in {{ period.label }} (through {{ period_cutoff|date:"M j, Y" }}). Missing start dates are excluded. Annual reports show a quarterly breakdown.</p>
     </section>
     <section class="employability-panel" aria-labelledby="campus-chart-heading">
-      <h2 id="campus-chart-heading">Employed respondents by campus / college</h2>
-      <div class="employability-canvas"><canvas id="employabilityGroupChart" role="img" aria-label="Horizontal bar chart of employed survey respondents by campus or college"></canvas></div>
-      <p class="employability-chart-note">{{ employed }} respondent{{ employed|pluralize }} reported employment as of {{ as_of|date:"M j, Y" }}. This is not a historical employment measure for {{ period.label }}.</p>
+      <h2 id="campus-chart-heading">Current-job starts by campus / college · {{ period.label }}</h2>
+      <div class="employability-canvas"><canvas id="employabilityGroupChart" role="img" aria-label="Horizontal bar chart of recorded current-job starts by campus or college for the selected period"></canvas></div>
+      <p class="employability-chart-note">{{ total_hired }} dated current-job start{{ total_hired|pluralize }} in {{ period.label }}. Snapshot employment remains a separate as-of measure; this is not a historical employment measure.</p>
     </section>
   </div>
   <section class="employability-panel" aria-labelledby="hire-table-heading">
@@ -99,7 +100,7 @@
         <a class="btn employability-action employability-action--primary" href="?{{ request.GET.urlencode }}{% if request.GET %}&amp;{% endif %}format=pdf"><i class="fas fa-file-pdf me-1" aria-hidden="true"></i> PDF</a>
       </div>
     </div>
-    <p class="employability-table-guidance"><i class="fas fa-arrows-alt-h" aria-hidden="true"></i> Scroll horizontally to view all columns. Job-start counts require actual dates; reported employment is a separate tracer-response measure.</p>
+    <p class="employability-table-guidance"><i class="fas fa-arrows-alt-h" aria-hidden="true"></i> Scroll horizontally to view all columns. Job-start counts and the campus chart use only the chosen timeframe. As-of reported employment is a separate tracer-response snapshot.</p>
     <div class="table-responsive" tabindex="0" role="region" aria-label="Scrollable graduate employability report table"><table class="employability-table">
       <caption>Only {{ period.label }} is reported{% if period_kind == "annual" %}, divided into its four quarters{% endif %}. Current-job start counts require explicit dates; employment-status counts use the latest submitted answers and can exceed dated starts. All percentages use tracer respondents, not the complete graduate registry.</caption>
       <thead><tr><th scope="col">Main campus / Colleges and External Campuses</th><th scope="col">Tracer respondents</th>{% for label in period_labels %}<th scope="col">Current-job starts · {{ label }}</th><th scope="col">% of respondents · {{ label }}</th>{% endfor %}<th scope="col">Reported employed (as of)</th><th scope="col">Missing start date</th><th scope="col">Respondent employment rate (as of)</th><th scope="col">Respondent share</th></tr></thead>

@@ -195,6 +195,8 @@ def _aggregate(cohort, hires, campus_names, college_names, employed_ids=None,
         'period_labels': [bucket['label'] for bucket in buckets],
         'period_columns': buckets,
         'period_totals': period_totals,
+        'period_start_rate': round(100 * sum(period_totals) / respondent_count, 2) if respondent_count else 0,
+        'period_start_rate_display': f'{100 * sum(period_totals) / respondent_count:.2f}%' if respondent_count else 'N/A',
         'period_total_cells': cells(period_totals, respondent_count),
         'table_column_count': 6 + 2 * len(buckets),
         # Preserve existing annual report / regression-test context keys.
@@ -319,6 +321,11 @@ def _report_data(params, *, user=None):
         'scope_total_label': 'Filtered total' if (permitted_campuses is not None or campus_filter or college_filter or course_filter) else 'University total',
         'generation_date': today, 'period': period, 'period_kind': period.kind,
         'period_cutoff': min(as_of, period.end),
+        'report_metric_note': (
+            'Selected reporting months or quarters filter recorded current-job starts only. '
+            'The as-of employment status is a separate snapshot of tracer answers; it cannot '
+            'be reconstructed historically for an earlier period from the available data.'
+        ),
         'methodology': (
             'Source: submitted NORSU alumni tracer-study questionnaire responses, latest response per alumnus '
             'received on or before the as-of date. The cohort denominator is respondents, not the official '

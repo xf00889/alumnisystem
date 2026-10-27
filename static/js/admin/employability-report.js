@@ -15,7 +15,7 @@
   });
   const groupCanvas = document.getElementById('employabilityGroupChart');
   if (groupCanvas) new window.Chart(groupCanvas,{
-    type:'bar',data:{labels:rows.map(r=>r.name),datasets:[{label:'Reported employed',data:rows.map(r=>r.employed),backgroundColor:'#b18a50',borderRadius:4}]},
+    type:'bar',data:{labels:rows.map(r=>r.name),datasets:[{label:'Dated starts in selected period',data:rows.map(r=>r.total_hired),backgroundColor:'#2b3c6b',borderRadius:4}]},
     options:{...common,indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{ticks:{autoSkip:false}}}}
   });
 })();

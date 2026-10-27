@@ -53,9 +53,9 @@ def public_campaign_list(request):
     Reuse the same read-only campaign filtering and pagination. Never expose
     alumni-only, draft, paused, or unavailable campaigns to visitors.
     """
-    if request.user.is_authenticated:
-        return redirect('donations:campaign_list')
-
+    # Browsing the public initiatives must work for staff and logged-in alumni
+    # too. Redirecting managers to campaign_list showed an administration
+    # directory under a misleading "Public Campaigns" navigation label.
     now = timezone.now()
     campaigns = Campaign.objects.filter(
         visibility='public', status='active', allow_donations=True,

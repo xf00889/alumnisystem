@@ -125,7 +125,7 @@ def post_registration(request):
                     if len(registry_matches) != 1:
                         verification_error = (
                             'We could not verify your alumni record against the registrar list. '
-                            'Please check your information or contact the Alumni Office.'
+                            'Please visit your Campus Alumni Office for assistance. Thank you!'
                         )
                         return render(request, 'accounts/post_registration.html', {
                             'form': form,
@@ -133,6 +133,7 @@ def post_registration(request):
                             'verification_success': False,
                             'verification_message': '',
                             'verification_error': verification_error,
+                            'verification_error_title': 'NO RECORD FOUND',
                         })
 
                     registry_record = registry_matches[0]
@@ -147,6 +148,7 @@ def post_registration(request):
                             'verification_success': False,
                             'verification_message': '',
                             'verification_error': verification_error,
+                            'verification_error_title': 'RECORD ALREADY LINKED',
                         })
 
                     # Server-side duplicate check before saving

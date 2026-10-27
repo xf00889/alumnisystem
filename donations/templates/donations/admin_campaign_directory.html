@@ -1,18 +1,18 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Campaign Administration | NORSU Alumni{% endblock %}
+{% block title %}Fundraising Initiatives | NORSU Alumni{% endblock %}
 {% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin/content-management.css' %}">{% endblock %}
 {% block content %}
 <div class="container-fluid staff-content-directory" data-staff-directory="campaigns">
   <header class="admin-page-header admin-page-header--action-row"><div class="admin-page-header__content">
-    <p class="admin-page-header__eyebrow">ADMINISTRATION / DONATIONS</p><h1 class="admin-page-header__title">Campaign Administration</h1>
-    <p class="admin-page-header__subtitle">Review campaigns, track fundraising and manage visibility in one workspace.</p>
+    <p class="admin-page-header__eyebrow">ADMINISTRATION / DONATIONS</p><h1 class="admin-page-header__title">Fundraising Initiatives</h1>
+    <p class="admin-page-header__subtitle">Manage fundraising initiatives, review their status and control visibility in one workspace.</p>
   </div><div class="admin-page-header__actions"><a class="btn btn-outline-light" href="{% url 'donations:manage_campaigns' %}">Manage all statuses</a><a class="btn btn-light" href="{% url 'donations:campaign_create' %}"><i class="fas fa-plus" aria-hidden="true"></i> Create Campaign</a></div></header>
   <form method="get" class="staff-content-filters" role="search" aria-label="Filter campaigns">
     <label>Search campaigns {{ filter_form.search }}</label><label>Campaign type {{ filter_form.campaign_type }}</label><label>Status {{ filter_form.status }}</label><label>Sort by {{ filter_form.sort }}</label>
     <div class="staff-content-filter-actions"><button class="btn btn-primary" type="submit">Apply filters</button><a class="btn btn-outline-secondary" href="{% url 'donations:campaign_list' %}">Clear</a></div>
   </form>
-  <section class="staff-content-results" aria-label="Campaign results"><div class="staff-content-heading"><h2>Fundraising campaigns</h2><span>{{ page_obj.paginator.count }} matching campaign{{ page_obj.paginator.count|pluralize }}</span></div>
+  <section class="staff-content-results" aria-label="Campaign results"><div class="staff-content-heading"><h2>Fundraising initiatives</h2><span>{{ page_obj.paginator.count }} matching campaign{{ page_obj.paginator.count|pluralize }}</span></div>
   <div class="table-responsive"><table class="table staff-content-table"><thead><tr><th>Campaign</th><th>Type</th><th>Funds raised</th><th>Status</th><th>Actions</th></tr></thead><tbody>
   {% for campaign in page_obj %}<tr><td><div class="staff-content-name">{{ campaign.name }}</div><p>{{ campaign.short_description|truncatewords:16 }}</p></td><td>{{ campaign.campaign_type.name }}</td><td>₱{{ campaign.current_amount|floatformat:2 }} / ₱{{ campaign.goal_amount|floatformat:2 }}</td><td><span class="staff-content-status">{{ campaign.get_status_display }}</span></td><td><div class="staff-content-actions"><button type="button" class="btn btn-sm btn-outline-primary" data-modal-url="{% url 'donations:admin_campaign_preview' campaign.pk %}" data-modal-title="Campaign details">Details</button><a class="btn btn-sm btn-outline-secondary" href="{% url 'donations:campaign_edit' campaign.pk %}">Edit</a></div></td></tr>
   {% empty %}<tr><td colspan="5" class="text-center py-4">No matching campaigns. Try clearing the filters.</td></tr>{% endfor %}

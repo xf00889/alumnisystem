@@ -158,12 +158,15 @@ def admin_dashboard(request):
 
     # Recent Activity
     # Dashboard 'New Registered Alumni' must not show partial/failed sign-ups.
-    # date_joined is account creation time, not registration completion time;
-    # label the feed accordingly. Leave the all-accounts metrics unchanged.
+    # A genuine verified sign-up has a completed Profile, Alumni row, and
+    # registrar record claimed by that account. Creating an account alone is
+    # not a completed/verified alumni registration. Leave all-account KPIs
+    # unchanged (they count user accounts rather than verified graduates).
     recent_users = (User.objects.filter(
         date_joined__gte=seven_days_ago,
         profile__has_completed_registration=True,
         alumni__isnull=False,
+        graduate_registry_record__isnull=False,
     ).select_related('profile', 'alumni').order_by('-date_joined')[:5])
     recent_donations = Donation.objects.filter(
         status='completed',

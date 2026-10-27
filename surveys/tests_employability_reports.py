@@ -170,6 +170,13 @@ class EmployabilityReportTests(TestCase):
         self.assertEqual(response.context['period_labels'], ['February 2026'])
         self.assertEqual(response.context['period_totals'], [1])
         self.assertEqual(response.context['table_column_count'], 8)
+        self.assertEqual(response.context['period_start_rate_display'], '33.33%')
+        # The historical February graph must not use September's as-of employed values.
+        campus_rows = response.context['rows']
+        self.assertEqual(sum(row['total_hired'] for row in campus_rows), 1)
+        self.assertEqual(sum(row['employed'] for row in campus_rows), 2)
+        self.assertContains(response, 'Current-job starts by campus / college · February 2026')
+        self.assertContains(response, 'Dated current-job starts · February 2026')
         self.assertContains(response, 'Current-job starts · February 2026')
         self.assertNotContains(response, 'Current-job starts · Q2 2026')
         self.assertContains(response, 'not a historical employment measure')
@@ -195,6 +202,7 @@ class EmployabilityReportTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.context['period_labels'], [label])
                 self.assertEqual(response.context['period_totals'], expected)
+                self.assertEqual(response.context['total_hired'], sum(expected))
                 self.assertEqual(response.context['table_column_count'], 8)
 
     def test_annual_remains_four_quarters_and_excel_columns_match(self):
